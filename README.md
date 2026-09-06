@@ -1,5 +1,4 @@
 # HireScope
-<<<<<<< HEAD
 
 Resume-to-job matching. You paste a job description, HireScope scores every
 candidate's resume against it, tells you which required skills each person has
@@ -10,7 +9,7 @@ and lacks, and drafts three interview questions tailored to that person.
 Two services that talk over HTTP:
 
 ```
-  client (React)
+  client (React, :3000)
         |
         v
   Node API  ── POST /match ──▶  Python ML service   (embeddings + skills diff)
@@ -24,7 +23,7 @@ Two services that talk over HTTP:
 | ------------------ | ------------------------------------ | ----- | ------------------------------------------------- |
 | [`server/`](server/)         | Node, Express, Mongoose    | 5000  | REST API, orchestration, persistence              |
 | [`ml-service/`](ml-service/) | Python, Flask, sentence-transformers | 5001  | Fit score + skills matching             |
-| [`client/`](client/)         | React                      | —     | UI (not yet implemented)                          |
+| [`client/`](client/)         | React, Vite, Tailwind      | 3000  | Recruiter UI                                      |
 
 The split exists because the scoring is a Python job — `sentence-transformers`
 has no real Node equivalent — while the API, auth and database work is more
@@ -91,6 +90,22 @@ npm run dev
 | `ML_SERVICE_URL` | Where the Python service is listening        | `http://localhost:5001`              |
 | `GEMINI_API_KEY` | From <https://aistudio.google.com/app/apikey> | *(required)*                        |
 | `GEMINI_MODEL`   | Gemini model id                              | `gemini-2.0-flash`                   |
+
+### 4. React client (port 3000)
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Opens <http://localhost:3000>. It talks to the Node API at
+`http://localhost:5000` by default; override with `VITE_API_URL` in
+`client/.env` if the API runs elsewhere.
+
+Add candidates on the **Candidates** tab first, then paste a posting on the
+**Match** tab and hit *Match candidates*. Click *View* on any row to read that
+person's three interview questions.
 
 ## API reference
 
@@ -162,8 +177,14 @@ HireScope/
 │   │   ├── matchService.js    HTTP client for the Python ML service
 │   │   └── aiService.js       Gemini client for interview questions
 │   └── .env.example
-└── client/                    React UI (not yet implemented)
+└── client/
+    ├── src/
+    │   ├── services/api.js    every HTTP call to the Node API
+    │   ├── components/        SkillTags, FitScoreBadge, ResultsTable,
+    │   │                      CandidateDetailModal, forms, Navbar, Alert
+    │   ├── pages/             MatchPage, CandidatesPage
+    │   ├── App.jsx            routes
+    │   └── main.jsx           React entry point
+    ├── index.html
+    └── tailwind.config.js
 ```
-=======
-AI-powered recruiting intelligence platform
->>>>>>> 112f6bbec8bd286538f3052b180a36dc9553bbb7
