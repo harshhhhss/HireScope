@@ -1,4 +1,5 @@
 # HireScope
+<<<<<<< HEAD
 
 Resume-to-job matching. You paste a job description, HireScope scores every
 candidate's resume against it, tells you which required skills each person has
@@ -163,3 +164,6 @@ HireScope/
 │   └── .env.example
 └── client/                    React UI (not yet implemented)
 ```
+=======
+AI-powered recruiting intelligence platform
+>>>>>>> 112f6bbec8bd286538f3052b180a36dc9553bbb7
