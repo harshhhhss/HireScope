@@ -1,0 +1,5 @@
+# Version floors rather than exact pins: torch publishes wheels for new Python
+# releases on a lag, so `>=` lets pip pick a build that matches your interpreter.
+flask>=3.0
+sentence-transformers>=3.0
+torch>=2.3

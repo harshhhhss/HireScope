@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# python
+ml-service/venv/
+ml-service/__pycache__/
+*.pyc
+
+# env files - never commit real keys
+.env
+server/.env
+client/.env
+
+# build output
+client/dist/
+client/build/
+
+# logs / os
+*.log
+npm-debug.log*
+.DS_Store
