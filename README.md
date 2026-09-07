@@ -107,6 +107,28 @@ Add candidates on the **Candidates** tab first, then paste a posting on the
 **Match** tab and hit *Match candidates*. Click *View* on any row to read that
 person's three interview questions.
 
+### Gemini model and free-tier limits
+
+`GEMINI_MODEL` defaults to `gemini-flash-lite-latest`. Two deliberate choices:
+
+- **An alias, not a pinned version.** Google retires specific versions, and a
+  pinned model starts returning `404 ... is no longer available`. The alias
+  always resolves to a current model.
+- **The "lite" tier.** Writing three questions does not need a frontier model,
+  and the flagship `gemini-flash-latest` alias frequently answers
+  `503 high demand` on the free tier.
+
+Two failure modes worth recognising in the server log:
+
+| Log line | Meaning | What the app does |
+| --- | --- | --- |
+| `Gemini API returned 503` | Model temporarily overloaded | Retries with exponential backoff (2s, 4s, 8s) |
+| `Gemini API returned 429 ... Quota exceeded` | Free-tier request limit hit | Waits the `retryDelay` the API asks for, then retries |
+
+Either way the match still succeeds: `fit_score`, `matched_skills` and
+`missing_skills` are saved, and the result carries a `warning` explaining that
+questions were unavailable. The UI surfaces that as a blue notice.
+
 ## API reference
 
 ### `POST /api/v1/candidates`
