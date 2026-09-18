@@ -3,8 +3,15 @@ const axios = require('axios');
 /**
  * Gemini client for HireScope.
  *
- * Responsibility: given a resume and the skills the candidate is missing,
- * generate three personalised interview questions.
+ * Two analyses live here, both built on the same request helper:
+ *   1. generateInterviewQuestions() - recruiter flow: given a resume and the
+ *      skills it is missing, write three interview questions.
+ *   2. scoreResumeQuality()         - student flow: given a resume on its own,
+ *      with no job description, rate it and say how to improve it.
+ *
+ * Everything shared between them - auth, the retry/backoff loop, truncation
+ * checks, digging the answer out of the response - lives in requestGemini().
+ * Each analysis only has to supply a prompt and a parser.
  *
  * We call the REST API directly with axios instead of pulling in an SDK, so
  * every part of the request is visible in this file.
@@ -111,17 +118,26 @@ function extractText(response) {
 }
 
 /**
- * Pull a clean array of 3 question strings out of whatever Gemini replied with.
+ * Strip a markdown code fence from a reply.
  *
- * We ask for JSON, but models sometimes wrap it in a ```json fence, so we strip
- * that first. If JSON.parse still fails we fall back to reading the reply line
- * by line - a slightly messy answer is better than a failed request.
+ * We ask for JSON via responseMimeType, but models still sometimes wrap the
+ * answer in a ```json fence. Both parsers below start by removing it.
  */
-function parseQuestions(rawText) {
-  const cleaned = rawText
+function stripJsonFences(rawText) {
+  return rawText
     .replace(/```json/gi, '')
     .replace(/```/g, '')
     .trim();
+}
+
+/**
+ * Pull a clean array of 3 question strings out of whatever Gemini replied with.
+ *
+ * If JSON.parse fails we fall back to reading the reply line by line - a
+ * slightly messy answer is better than a failed request.
+ */
+function parseQuestions(rawText) {
+  const cleaned = stripJsonFences(rawText);
 
   try {
     const parsed = JSON.parse(cleaned);
@@ -140,13 +156,20 @@ function parseQuestions(rawText) {
 }
 
 /**
- * Generate 3 personalised interview questions for one candidate.
+ * Send one prompt to Gemini and return the answer as raw text.
  *
- * @param {string} resumeText       - the candidate's resume text
- * @param {string[]} missingSkills  - skills from the job the resume does not show
- * @returns {Promise<string[]>} exactly up to 3 question strings
+ * This is the single place that knows how to talk to the API: auth, the
+ * retry/backoff loop, the truncation check and pulling the text back out.
+ * Callers supply a prompt and do their own parsing, so adding a new kind of
+ * analysis does not mean copying any of this.
+ *
+ * @param {string} prompt      - the full prompt to send
+ * @param {object} [options]
+ * @param {number} [options.temperature] - 0 is deterministic, higher is freer
+ * @param {string} [options.label]       - name used in log lines and errors
+ * @returns {Promise<string>} the reply text, never empty
  */
-async function generateInterviewQuestions(resumeText, missingSkills = []) {
+async function requestGemini(prompt, { temperature = 0.7, label = 'request' } = {}) {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is not set. Add it to server/.env');
   }
@@ -161,14 +184,13 @@ async function generateInterviewQuestions(resumeText, missingSkills = []) {
           contents: [
             {
               // Gemini's format: a list of turns, each holding a list of parts.
-              parts: [{ text: buildPrompt(resumeText, missingSkills) }],
+              parts: [{ text: prompt }],
             },
           ],
           generationConfig: {
-            // Some creativity, but not so much that questions drift off-resume.
-            temperature: 0.7,
+            temperature,
             maxOutputTokens: MAX_OUTPUT_TOKENS,
-            // Asking for JSON up front makes parseQuestions succeed far more often.
+            // Asking for JSON up front makes the parsers succeed far more often.
             responseMimeType: 'application/json',
           },
         },
@@ -185,7 +207,7 @@ async function generateInterviewQuestions(resumeText, missingSkills = []) {
       const finishReason = response.data?.candidates?.[0]?.finishReason;
 
       // Truncated output is worse than none: it parses into half a sentence
-      // that would then be saved as a real interview question.
+      // that would then be shown to the user as real advice.
       if (finishReason === 'MAX_TOKENS') {
         throw new Error(
           `Gemini hit the ${MAX_OUTPUT_TOKENS}-token limit before finishing its answer`
@@ -198,13 +220,7 @@ async function generateInterviewQuestions(resumeText, missingSkills = []) {
         throw new Error(`Gemini returned no text (finishReason: ${finishReason ?? 'unknown'})`);
       }
 
-      const questions = parseQuestions(rawText);
-
-      if (questions.length === 0) {
-        throw new Error('Could not parse any questions from the Gemini response');
-      }
-
-      return questions;
+      return rawText;
     } catch (error) {
       lastError = error;
 
@@ -218,7 +234,7 @@ async function generateInterviewQuestions(resumeText, missingSkills = []) {
 
       const delay = getRetryDelayMs(error, attempt);
       console.warn(
-        `Gemini attempt ${attempt}/${MAX_ATTEMPTS} failed with ${status}; retrying in ${Math.round(delay / 1000)}s`
+        `Gemini ${label} attempt ${attempt}/${MAX_ATTEMPTS} failed with ${status}; retrying in ${Math.round(delay / 1000)}s`
       );
       await sleep(delay);
     }
@@ -231,4 +247,147 @@ async function generateInterviewQuestions(resumeText, missingSkills = []) {
   throw new Error(`Gemini request failed: ${lastError.message}`);
 }
 
-module.exports = { generateInterviewQuestions, buildPrompt, parseQuestions, extractText };
+/**
+ * Generate 3 personalised interview questions for one candidate.
+ *
+ * @param {string} resumeText       - the candidate's resume text
+ * @param {string[]} missingSkills  - skills from the job the resume does not show
+ * @returns {Promise<string[]>} exactly up to 3 question strings
+ */
+async function generateInterviewQuestions(resumeText, missingSkills = []) {
+  const rawText = await requestGemini(buildPrompt(resumeText, missingSkills), {
+    // Some creativity, but not so much that questions drift off-resume.
+    temperature: 0.7,
+    label: 'interview questions',
+  });
+
+  const questions = parseQuestions(rawText);
+
+  if (questions.length === 0) {
+    throw new Error('Could not parse any questions from the Gemini response');
+  }
+
+  return questions;
+}
+
+/**
+ * Build the resume-quality prompt.
+ *
+ * Deliberately has no job description in it: this is the student flow, where
+ * someone wants to know whether their resume is any good before they pick a
+ * role to apply for.
+ *
+ * The rules push hard against generic filler. "Add more detail" helps nobody;
+ * "quantify the DevPilot AI project - how many users, how much faster?" is
+ * something the reader can actually act on this afternoon.
+ */
+function buildResumeQualityPrompt(resumeText) {
+  return `You are a senior engineering hiring manager reviewing a resume. You have read thousands.
+
+Judge the resume below on its own merits. There is no specific job to compare it against.
+
+Score it out of 100, weighing:
+- Concrete, quantified impact rather than lists of responsibilities
+- Evidence of real projects, with the technologies actually named
+- Clarity and structure a reader can scan in 30 seconds
+- Signs of depth (why decisions were made) rather than only breadth
+
+Rules for your answer:
+- "strengths": 2 to 4 items. Each must point at something specific in this resume, quoting the project or technology by name.
+- "improvements": 3 to 5 items. Each must be a concrete action on THIS resume, naming the exact section or project to change.
+- Never give generic advice like "add more detail" or "use action verbs". Say which project needs a number, or which claim needs evidence.
+- Each item must be one sentence, under 30 words.
+- Be honest. A weak resume should score below 50.
+
+Resume:
+"""
+${resumeText}
+"""
+
+Return ONLY a JSON object in exactly this shape:
+{"overall_score": 72, "strengths": ["...", "..."], "improvements": ["...", "...", "..."]}`;
+}
+
+/**
+ * Turn the model's reply into a result we are willing to show the user.
+ *
+ * Everything is clamped and bounded here rather than trusted: the score is
+ * forced into 0-100, the lists are coerced to strings and capped. A malformed
+ * reply should produce a small, sane object or throw - never leak raw model
+ * output into the UI.
+ *
+ * @returns {{overall_score: number, strengths: string[], improvements: string[]}}
+ */
+function parseResumeQuality(rawText) {
+  const cleaned = stripJsonFences(rawText);
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (error) {
+    throw new Error('Gemini did not return valid JSON for the resume score');
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Gemini returned an unexpected shape for the resume score');
+  }
+
+  // Check for null/undefined explicitly before converting: Number(null) is 0,
+  // not NaN, so a missing score would otherwise sail through as a real 0.
+  const raw = parsed.overall_score;
+  const score = raw === null || raw === undefined ? NaN : Number(raw);
+  if (!Number.isFinite(score)) {
+    throw new Error('Gemini did not return a numeric overall_score');
+  }
+
+  // Only strings and numbers become list items. Without that guard String(null)
+  // yields the literal text "null", which is truthy and would be shown as advice.
+  const toList = (value, max) =>
+    (Array.isArray(value) ? value : [])
+      .filter((item) => typeof item === 'string' || Number.isFinite(item))
+      .map((item) => String(item).trim())
+      .filter(Boolean)
+      .slice(0, max);
+
+  const strengths = toList(parsed.strengths, 4);
+  const improvements = toList(parsed.improvements, 5);
+
+  if (strengths.length === 0 && improvements.length === 0) {
+    throw new Error('Gemini returned no strengths or improvements');
+  }
+
+  return {
+    // Round to one decimal so the UI never renders 71.99999999.
+    overall_score: Math.round(Math.min(100, Math.max(0, score)) * 10) / 10,
+    strengths,
+    improvements,
+  };
+}
+
+/**
+ * Score one resume on its own, with no job description involved.
+ *
+ * @param {string} resumeText - the resume to review
+ * @returns {Promise<{overall_score: number, strengths: string[], improvements: string[]}>}
+ */
+async function scoreResumeQuality(resumeText) {
+  const rawText = await requestGemini(buildResumeQualityPrompt(resumeText), {
+    // Lower than the interview questions: this is a judgement, and we want the
+    // same resume to score about the same each time it is checked.
+    temperature: 0.3,
+    label: 'resume score',
+  });
+
+  return parseResumeQuality(rawText);
+}
+
+module.exports = {
+  generateInterviewQuestions,
+  scoreResumeQuality,
+  buildPrompt,
+  buildResumeQualityPrompt,
+  parseQuestions,
+  parseResumeQuality,
+  extractText,
+  requestGemini,
+};
