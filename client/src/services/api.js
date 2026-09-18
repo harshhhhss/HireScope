@@ -105,4 +105,79 @@ export async function matchCandidates(jobDescription, candidateIds) {
   }
 }
 
+/**
+ * POST /api/v1/resume/score - rate one resume on its own, no job description.
+ *
+ * Nothing is saved: this is the self-service student flow, not the recruiter
+ * candidate pool.
+ *
+ * @returns {Promise<{overall_score: number, strengths: string[], improvements: string[]}>}
+ */
+export async function scoreResume(resumeText) {
+  try {
+    const response = await api.post('/resume/score', { resume_text: resumeText });
+    const { overall_score, strengths, improvements } = response.data;
+    return { overall_score, strengths, improvements };
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
+/**
+ * POST /api/v1/resume/upload - send a PDF or DOCX, get its text back.
+ *
+ * The shared axios instance sets Content-Type: application/json, which would
+ * break a multipart request. Setting it to undefined here lets the browser
+ * write the header itself, including the multipart boundary it generates.
+ *
+ * @param {File} file - from an <input type="file">
+ * @returns {Promise<{resume_text: string, characters: number, format: string, filename: string}>}
+ */
+export async function uploadResumeFile(file) {
+  try {
+    const formData = new FormData();
+    // The field name must be "resume" - that is what upload.single() expects.
+    formData.append('resume', file);
+
+    const response = await api.post('/resume/upload', formData, {
+      headers: { 'Content-Type': undefined },
+    });
+
+    const { resume_text, characters, format, filename } = response.data;
+    return { resume_text, characters, format, filename };
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
+/**
+ * POST /api/v1/resume/match - score one resume against one job description.
+ *
+ * Same pipeline the recruiter /match endpoint runs, but for a single resume
+ * held in the request and with nothing written to the database.
+ *
+ * @returns {Promise<{fit_score: number, matched_skills: string[], missing_skills: string[], interview_questions: string[], warning?: string}>}
+ */
+export async function matchMyResume(resumeText, jobDescription) {
+  try {
+    const response = await api.post('/resume/match', {
+      resume_text: resumeText,
+      job_description: jobDescription,
+    });
+
+    const { fit_score, matched_skills, missing_skills, interview_questions, warning } =
+      response.data;
+
+    return {
+      fit_score,
+      matched_skills: matched_skills ?? [],
+      missing_skills: missing_skills ?? [],
+      interview_questions: interview_questions ?? [],
+      warning,
+    };
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
 export default api;

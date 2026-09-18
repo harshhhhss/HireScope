@@ -23,7 +23,7 @@ Two services that talk over HTTP:
 | ------------------ | ------------------------------------ | ----- | ------------------------------------------------- |
 | [`server/`](server/)         | Node, Express, Mongoose    | 5000  | REST API, orchestration, persistence              |
 | [`ml-service/`](ml-service/) | Python, Flask, sentence-transformers | 5001  | Fit score + skills matching             |
-| [`client/`](client/)         | React, Vite, Tailwind      | 3000  | Recruiter UI                                      |
+| [`client/`](client/)         | React, Vite, Tailwind      | 3000  | Recruiter UI + self-service resume check          |
 
 The split exists because the scoring is a Python job — `sentence-transformers`
 has no real Node equivalent — while the API, auth and database work is more
@@ -103,9 +103,14 @@ Opens <http://localhost:3000>. It talks to the Node API at
 `http://localhost:5000` by default; override with `VITE_API_URL` in
 `client/.env` if the API runs elsewhere.
 
-Add candidates on the **Candidates** tab first, then paste a posting on the
-**Match** tab and hit *Match candidates*. Click *View* on any row to read that
-person's three interview questions.
+There are two flows in the UI:
+
+- **Recruiter** - add candidates on the **Candidates** tab, then paste a posting
+  on the **Match** tab and hit *Match candidates*. Click *View* on any row to
+  read that person's three interview questions.
+- **Student** - the **Check my resume** tab. Upload a PDF/DOCX or paste your
+  resume, get a quality score with specific fixes, then optionally paste a job
+  description to see how you line up against it. Nothing on this tab is saved.
 
 ### Gemini model and free-tier limits
 
@@ -180,6 +185,94 @@ Response:
 }
 ```
 
+## Self-service API (student flow)
+
+These three endpoints back the **Check my resume** page. None of them touch the
+`Candidate` collection: a student checking their own CV never appears in a
+recruiter's candidate list.
+
+### `POST /api/v1/resume/score`
+
+Rate a resume on its own. No job description, nothing saved.
+
+```bash
+curl -X POST http://localhost:5000/api/v1/resume/score   -H "Content-Type: application/json"   -d '{"resume_text":"Harsh Singh, Backend Engineer. DevPilot AI: built the backend in Python with FastAPI, MongoDB for storage, Redis cache. Docker on AWS EC2."}'
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "overall_score": 42,
+  "strengths": [
+    "Clearly names relevant technologies like FastAPI, MongoDB, and Redis in the DevPilot AI project."
+  ],
+  "improvements": [
+    "Add a quantified metric to the DevPilot AI project showing latency reduction or throughput improvement.",
+    "Remove React from the Skills section since no frontend work is mentioned in either project."
+  ]
+}
+```
+
+The prompt pushes hard against generic filler, so `improvements` name the exact
+project or section to change rather than saying "add more detail".
+
+### `POST /api/v1/resume/upload`
+
+Send a PDF or DOCX as multipart form data in a field named `resume`, get the
+extracted plain text back. Does no analysis, so a failed upload costs no Gemini
+quota. Used by the student flow, and equally usable for candidate creation.
+
+```bash
+curl -X POST http://localhost:5000/api/v1/resume/upload   -F "resume=@/path/to/resume.pdf"
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "resume_text": "Harsh Singh - Backend Engineer
+Built REST APIs in Python with Flask and FastAPI.",
+  "characters": 112,
+  "format": "pdf",
+  "filename": "resume.pdf"
+}
+```
+
+Limits: **PDF and DOCX only, 5MB maximum.** Anything else is rejected with a
+plain-English message - an old binary `.doc`, for example, is told to re-save as
+`.docx`. A scanned PDF with no text layer is caught too, rather than returning a
+handful of stray characters.
+
+### `POST /api/v1/resume/match`
+
+The same pipeline `POST /api/v1/match` runs, but against one resume held in the
+request instead of the stored candidate pool, and with no database write.
+
+```bash
+curl -X POST http://localhost:5000/api/v1/resume/match   -H "Content-Type: application/json"   -d '{"resume_text":"Python, FastAPI, MongoDB, Docker on AWS.","job_description":"Backend Engineer. Python, Node.js, MongoDB, Docker, Kubernetes, AWS. C++ and CI/CD a plus."}'
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "fit_score": 60.16,
+  "matched_skills": ["AWS", "Docker", "MongoDB", "Node.js", "Python"],
+  "missing_skills": ["C++", "CI/CD", "Kubernetes", "PostgreSQL"],
+  "interview_questions": [
+    "Can you walk me through how you structured the FastAPI backend and handled caching with Redis in your project DevPilot AI?"
+  ]
+}
+```
+
+Interview questions are the optional half here, exactly as in the recruiter
+flow: if Gemini is rate limited you still get `fit_score` and both skill lists,
+plus a `warning` field explaining what was skipped.
+
 ## Project layout
 
 ```
@@ -193,18 +286,22 @@ HireScope/
 │   ├── server.js              Express app, middleware, startup
 │   ├── config/db.js           Mongoose connection
 │   ├── models/Candidate.js    Candidate schema
-│   ├── routes/                index.js, candidateRoutes.js, matchRoutes.js
-│   ├── controllers/           matchController.js, candidateController.js
+│   ├── routes/                index.js, candidateRoutes.js, matchRoutes.js,
+│   │                          resumeRoutes.js
+│   ├── controllers/           matchController.js, candidateController.js,
+│   │                          resumeController.js
 │   ├── services/
-│   │   ├── matchService.js    HTTP client for the Python ML service
-│   │   └── aiService.js       Gemini client for interview questions
+│   │   ├── matchService.js       HTTP client for the Python ML service
+│   │   ├── aiService.js          Gemini: interview questions + resume scoring
+│   │   └── resumeTextService.js  PDF/DOCX -> plain text
 │   └── .env.example
 └── client/
     ├── src/
     │   ├── services/api.js    every HTTP call to the Node API
-    │   ├── components/        SkillTags, FitScoreBadge, ResultsTable,
-    │   │                      CandidateDetailModal, forms, Navbar, Alert
-    │   ├── pages/             MatchPage, CandidatesPage
+    │   ├── components/        SkillTags, FitScoreBadge, ScoreRing, ResultsTable,
+    │   │                      CandidateDetailModal, ResumeInput, forms,
+    │   │                      Navbar, Alert
+    │   ├── pages/             MatchPage, CandidatesPage, CheckResumePage
     │   ├── App.jsx            routes
     │   └── main.jsx           React entry point
     ├── index.html

@@ -27,6 +27,9 @@ function Navbar() {
           <NavLink to="/candidates" className={linkClass}>
             Candidates
           </NavLink>
+          <NavLink to="/check-resume" className={linkClass}>
+            Check my resume
+          </NavLink>
         </div>
       </nav>
     </header>
