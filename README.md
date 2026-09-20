@@ -89,7 +89,10 @@ npm run dev
 | `PORT`           | Node API port                                | `5000`                               |
 | `ML_SERVICE_URL` | Where the Python service is listening        | `http://localhost:5001`              |
 | `GEMINI_API_KEY` | From <https://aistudio.google.com/app/apikey> | *(required)*                        |
-| `GEMINI_MODEL`   | Gemini model id                              | `gemini-2.0-flash`                   |
+| `GEMINI_MODEL`   | Gemini model id                              | `gemini-flash-lite-latest`           |
+| `ADZUNA_APP_ID`  | Adzuna app id, free at <https://developer.adzuna.com/> | *(optional)*               |
+| `ADZUNA_APP_KEY` | Adzuna app key                               | *(optional)*                         |
+| `ADZUNA_COUNTRY` | Adzuna country code                          | `in`                                 |
 
 ### 4. React client (port 3000)
 
@@ -110,7 +113,10 @@ There are two flows in the UI:
   read that person's three interview questions.
 - **Student** - the **Check my resume** tab. Upload a PDF/DOCX or paste your
   resume, get a quality score with specific fixes, then optionally paste a job
-  description to see how you line up against it. Nothing on this tab is saved.
+  description - or search real openings - to see how you line up. From there you
+  can practise each interview question and get feedback on your answer, and
+  draft a cover letter. Nothing on this tab is saved server-side; the score
+  history shown under "Your progress" lives in your browser's localStorage.
 
 ### Gemini model and free-tier limits
 
@@ -273,6 +279,107 @@ Interview questions are the optional half here, exactly as in the recruiter
 flow: if Gemini is rate limited you still get `fit_score` and both skill lists,
 plus a `warning` field explaining what was skipped.
 
+### `POST /api/v1/resume/interview-feedback`
+
+Grade one practice answer to one interview question. Saves nothing.
+
+```bash
+curl -X POST http://localhost:5000/api/v1/resume/interview-feedback \
+  -H "Content-Type: application/json" \
+  -d '{"question":"How would you design a Kubernetes deployment strategy?","answer":"I am a fast learner and could pick it up quickly.","resume_text":"Backend engineer. Python, FastAPI, MongoDB, Docker on AWS EC2.","missing_skills":["Kubernetes","CI/CD"]}'
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "verdict": "off target",
+  "summary": "The candidate avoided the technical question entirely, offering generic enthusiasm instead of addressing Kubernetes deployment strategies or their skill gap.",
+  "suggestions": [
+    "Acknowledge your lack of production Kubernetes experience directly, referencing how your Docker and AWS EC2 background translates to container orchestration concepts.",
+    "Avoid relying on soft skills like being a 'fast learner' when asked a specific architectural and tooling question."
+  ]
+}
+```
+
+`verdict` is always one of `strong`, `needs work` or `off target`. The prompt
+specifically looks for answers that dodge a skill gap rather than admitting it,
+because that is the most common way a screening call goes wrong.
+
+### `POST /api/v1/resume/cover-letter`
+
+Draft a cover letter grounded in the resume and the posting. Saves nothing.
+
+```bash
+curl -X POST http://localhost:5000/api/v1/resume/cover-letter \
+  -H "Content-Type: application/json" \
+  -d '{"resume_text":"Backend engineer. Python, FastAPI, MongoDB, Docker on AWS EC2.","job_description":"Backend Engineer. Python, Node.js, MongoDB, Docker, Kubernetes, AWS.","matched_skills":["Python","MongoDB","Docker","AWS"]}'
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "cover_letter": "Dear Hiring Manager,\n\nI am writing to apply for the Backend Engineer position...\n\nSincerely,\nHarsh Singh"
+}
+```
+
+Every claim has to be traceable to the resume. The prompt forbids generic filler
+and forbids mentioning skills the candidate does not have, so a posting asking
+for Kubernetes will not produce a letter claiming Kubernetes experience.
+
+## Job search API
+
+### `GET /api/v1/jobs/search`
+
+Search real openings via [Adzuna](https://developer.adzuna.com/), used to
+autofill a job description on the **Check my resume** page.
+
+```bash
+curl "http://localhost:5000/api/v1/jobs/search?q=backend%20developer&location=Chennai"
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "configured": true,
+  "count": 10,
+  "results": [
+    {
+      "id": "4912345678",
+      "title": "Backend Developer",
+      "company": "Example Technologies",
+      "location": "Chennai, Tamil Nadu",
+      "snippet": "We are looking for a backend developer with strong Python...",
+      "description": "full posting text, used to autofill the match flow",
+      "url": "https://www.adzuna.in/details/4912345678",
+      "created": "2026-09-14T09:12:00Z"
+    }
+  ]
+}
+```
+
+`q` is required; `location` is optional. Credentials stay server-side - the
+browser never sees them.
+
+**When Adzuna is not configured** the endpoint answers `503` with
+`configured: false`, and the client hides the panel rather than showing a
+search box that cannot work:
+
+```json
+{
+  "success": false,
+  "configured": false,
+  "error": "Job search is not configured. Add ADZUNA_APP_ID and ADZUNA_APP_KEY to server/.env - free keys at https://developer.adzuna.com/"
+}
+```
+
+Pasting a job description by hand works with or without Adzuna.
+
 ## Project layout
 
 ```
@@ -287,20 +394,25 @@ HireScope/
 │   ├── config/db.js           Mongoose connection
 │   ├── models/Candidate.js    Candidate schema
 │   ├── routes/                index.js, candidateRoutes.js, matchRoutes.js,
-│   │                          resumeRoutes.js
+│   │                          resumeRoutes.js, jobRoutes.js
 │   ├── controllers/           matchController.js, candidateController.js,
-│   │                          resumeController.js
+│   │                          resumeController.js, jobController.js
 │   ├── services/
 │   │   ├── matchService.js       HTTP client for the Python ML service
-│   │   ├── aiService.js          Gemini: interview questions + resume scoring
+│   │   ├── aiService.js          Gemini: questions, resume scoring, answer
+│   │   │                         feedback, cover letters
+│   │   ├── jobSearchService.js   Adzuna job search client
 │   │   └── resumeTextService.js  PDF/DOCX -> plain text
 │   └── .env.example
 └── client/
     ├── src/
-    │   ├── services/api.js    every HTTP call to the Node API
+    │   ├── services/          api.js (every HTTP call), resumeHistory.js
+    │   │                      (score history in localStorage)
     │   ├── components/        SkillTags, FitScoreBadge, ScoreRing, ResultsTable,
-    │   │                      CandidateDetailModal, ResumeInput, forms,
-    │   │                      Navbar, Alert
+    │   │                      CandidateDetailModal, ResumeInput, ProgressTrend,
+    │   │                      JobSearchPanel, PracticeQuestion,
+    │   │                      CoverLetterDraft, EmptyState, TableSkeleton,
+    │   │                      forms, Navbar, Alert
     │   ├── pages/             MatchPage, CandidatesPage, CheckResumePage
     │   ├── App.jsx            routes
     │   └── main.jsx           React entry point
