@@ -4,6 +4,9 @@ import CandidateForm from '../components/CandidateForm';
 import ResultsTable from '../components/ResultsTable';
 import CandidateDetailModal from '../components/CandidateDetailModal';
 import Alert from '../components/Alert';
+import TableSkeleton from '../components/TableSkeleton';
+import EmptyState from '../components/EmptyState';
+import { Users } from 'lucide-react';
 
 /**
  * Add candidates and review everyone already in the database, along with the
@@ -59,8 +62,8 @@ function CandidatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Candidates</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-title text-ink-900">Candidates</h1>
+        <p className="mt-2 text-body text-ink-500">
           Paste resumes here first, then run a match from the Match tab.
         </p>
       </div>
@@ -71,23 +74,27 @@ function CandidatesPage() {
       <CandidateForm onCreate={handleCreate} isSaving={isSaving} />
 
       <div className="flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">
+        <h2 className="text-heading text-ink-900">
           In the database ({candidates.length})
         </h2>
-        <span className="text-xs text-slate-500">
+        <span className="text-meta text-ink-400">
           Scores are from the last job description each candidate was matched against
         </span>
       </div>
 
       {isLoading ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-          Loading candidates...
-        </div>
+        <TableSkeleton rows={3} />
+      ) : candidates.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No candidates yet"
+          description="Add someone with the form above, then head to the Match tab to score them against a job description."
+        />
       ) : (
         <ResultsTable
           results={candidates}
           onSelectCandidate={setSelectedCandidate}
-          emptyMessage="No candidates yet. Add one with the form above."
+          emptyMessage="No candidates yet."
         />
       )}
 

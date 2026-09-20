@@ -1,17 +1,25 @@
 /**
- * Render a list of skill strings as coloured pills.
+ * A list of skills rendered as chips.
  *
- * `variant` picks the colour: green for skills the candidate has, amber for
- * the ones the job wants but the resume never mentions.
+ * The two variants say different things, and the styling is what makes that
+ * clear:
+ *
+ *   matched - the `good` status treatment. This is a genuine positive: the
+ *             candidate has what the posting asked for.
+ *
+ *   missing - a neutral outline, NOT a status colour. A red chip would read as
+ *             an error the candidate is responsible for, which is wrong: not
+ *             having a skill yet is information, not a failure. These are
+ *             framed as areas to develop, so they stay quiet and factual.
  */
 function SkillTags({ skills, variant = 'matched', emptyText = 'None' }) {
   if (!skills || skills.length === 0) {
-    return <span className="text-sm text-slate-400">{emptyText}</span>;
+    return <span className="text-meta text-ink-400">{emptyText}</span>;
   }
 
   const styles = {
-    matched: 'bg-green-100 text-green-800 border-green-200',
-    missing: 'bg-amber-100 text-amber-800 border-amber-200',
+    matched: 'bg-good-soft text-good-ink border-good-line',
+    missing: 'bg-transparent text-ink-600 border-ink-300',
   };
 
   return (
@@ -19,7 +27,7 @@ function SkillTags({ skills, variant = 'matched', emptyText = 'None' }) {
       {skills.map((skill) => (
         <span
           key={skill}
-          className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${styles[variant]}`}
+          className={`inline-block rounded-ui border px-2.5 py-1 text-meta font-medium ${styles[variant]}`}
         >
           {skill}
         </span>

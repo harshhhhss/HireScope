@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Upload } from 'lucide-react';
 import { uploadResumeFile } from '../services/api';
 
 /**
@@ -46,12 +47,13 @@ function ResumeInput({ value, onChange, disabled }) {
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={busy}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-ui border border-ink-300 bg-white px-4 py-2 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          <Upload className="h-4 w-4" aria-hidden="true" />
           {isUploading ? 'Reading your file...' : 'Upload PDF or DOCX'}
         </button>
 
-        <span className="text-sm text-slate-400">or paste it below</span>
+        <span className="text-meta text-ink-400">or paste it below</span>
 
         <input
           ref={fileInputRef}
@@ -63,12 +65,12 @@ function ResumeInput({ value, onChange, disabled }) {
       </div>
 
       {uploadedName && !uploadError && (
-        <p className="mt-2 text-sm text-green-700">
+        <p className="mt-2 text-meta text-good-ink">
           Loaded {uploadedName} - check the text below looks right.
         </p>
       )}
 
-      {uploadError && <p className="mt-2 text-sm text-red-700">{uploadError}</p>}
+      {uploadError && <p className="mt-2 text-meta text-critical-ink">{uploadError}</p>}
 
       <textarea
         value={value}
@@ -76,10 +78,10 @@ function ResumeInput({ value, onChange, disabled }) {
         disabled={busy}
         rows={12}
         placeholder="Paste your resume here, or upload a file above..."
-        className="mt-3 w-full rounded-lg border border-slate-300 p-3 text-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 disabled:bg-slate-50"
+        className="mt-3 w-full rounded-ui border border-ink-300 p-3 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
       />
 
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1.5 text-meta text-ink-400">
         {value.trim().length > 0
           ? `${value.trim().length.toLocaleString()} characters`
           : 'Nothing entered yet'}

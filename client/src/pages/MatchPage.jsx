@@ -4,6 +4,8 @@ import JobDescriptionForm from '../components/JobDescriptionForm';
 import ResultsTable from '../components/ResultsTable';
 import CandidateDetailModal from '../components/CandidateDetailModal';
 import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
+import { Target } from 'lucide-react';
 
 /**
  * The main screen: paste a job description, score every candidate against it,
@@ -62,8 +64,8 @@ function MatchPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Match candidates</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-title text-ink-900">Match candidates</h1>
+        <p className="mt-2 text-body text-ink-500">
           Scores come from sentence embeddings; the skills lists come from a
           keyword taxonomy; the questions come from Gemini.
         </p>
@@ -87,30 +89,40 @@ function MatchPage() {
       )}
 
       {warnings.length > 0 && (
+        // The API attaches the real reason to each candidate as `warning`, so
+        // show that rather than guessing. A generic "check your API key" line
+        // is actively misleading when four of five candidates succeeded - that
+        // proves the key works, and the fifth just hit a transient rate limit.
         <Alert
           type="info"
-          message={`Scores saved, but interview questions were unavailable for ${warnings.length} candidate(s). Check that GEMINI_API_KEY is set in server/.env.`}
+          message={`Scores saved, but interview questions were unavailable for ${warnings.length} candidate(s): ${warnings
+            .map((candidate) => `${candidate.email} (${candidate.warning})`)
+            .join('; ')}`}
         />
       )}
 
       {hasMatched && (
         <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-heading text-ink-900">
             Results ({results.length})
           </h2>
-          <span className="text-xs text-slate-500">Ranked by fit score, best first</span>
+          <span className="text-meta text-ink-400">Ranked by fit score, best first</span>
         </div>
       )}
 
-      <ResultsTable
-        results={results}
-        onSelectCandidate={setSelectedCandidate}
-        emptyMessage={
-          hasMatched
-            ? 'No candidates were scored.'
-            : 'Paste a job description above and run a match to see results here.'
-        }
-      />
+      {!hasMatched && results.length === 0 ? (
+        <EmptyState
+          icon={Target}
+          title="No results yet"
+          description="Paste a job description above and run a match. Every candidate in the database will be scored against it and ranked here."
+        />
+      ) : (
+        <ResultsTable
+          results={results}
+          onSelectCandidate={setSelectedCandidate}
+          emptyMessage="No candidates were scored."
+        />
+      )}
 
       <CandidateDetailModal
         candidate={selectedCandidate}

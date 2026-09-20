@@ -180,4 +180,63 @@ export async function matchMyResume(resumeText, jobDescription) {
   }
 }
 
+/**
+ * GET /api/v1/jobs/search - real openings from Adzuna.
+ *
+ * Resolves to `{ configured: false }` rather than throwing when the server has
+ * no Adzuna keys, so the caller can hide the panel instead of showing an error
+ * for something the student cannot fix.
+ *
+ * @returns {Promise<{configured: boolean, results: object[], error?: string}>}
+ */
+export async function searchJobs(keywords, location = '') {
+  try {
+    const response = await api.get('/jobs/search', {
+      params: { q: keywords, ...(location ? { location } : {}) },
+    });
+    return { configured: true, results: response.data.results ?? [] };
+  } catch (error) {
+    if (error.response?.data?.configured === false) {
+      return { configured: false, results: [], error: error.response.data.error };
+    }
+    throw toReadableError(error);
+  }
+}
+
+/**
+ * POST /api/v1/resume/interview-feedback - grade one practice answer.
+ * @returns {Promise<{verdict: string, summary: string, suggestions: string[]}>}
+ */
+export async function getInterviewFeedback({ question, answer, resumeText, missingSkills }) {
+  try {
+    const response = await api.post('/resume/interview-feedback', {
+      question,
+      answer,
+      resume_text: resumeText,
+      missing_skills: missingSkills ?? [],
+    });
+    const { verdict, summary, suggestions } = response.data;
+    return { verdict, summary, suggestions: suggestions ?? [] };
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
+/**
+ * POST /api/v1/resume/cover-letter - draft a letter grounded in the resume.
+ * @returns {Promise<string>} the letter as plain text
+ */
+export async function getCoverLetter({ resumeText, jobDescription, matchedSkills }) {
+  try {
+    const response = await api.post('/resume/cover-letter', {
+      resume_text: resumeText,
+      job_description: jobDescription,
+      matched_skills: matchedSkills ?? [],
+    });
+    return response.data.cover_letter;
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
 export default api;

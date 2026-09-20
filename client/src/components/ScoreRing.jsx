@@ -1,8 +1,11 @@
+import { getScoreBand } from './FitScoreBadge';
+
 /**
  * A 0-100 score drawn as a circular progress ring.
  *
- * The colour bands are the same ones FitScoreBadge uses (70+ green, 40+ amber,
- * below that red) so a score means the same thing everywhere in the app.
+ * The bands come from getScoreBand() in FitScoreBadge, so a score means the
+ * same thing everywhere in the app and the thresholds can only be changed in
+ * one place.
  *
  * Built from two SVG circles: one faint track, and one arc on top whose length
  * is set with stroke-dasharray. Rotating the whole SVG -90 degrees moves the
@@ -19,15 +22,12 @@ function ScoreRing({ score, size = 168, label = 'Resume score' }) {
   const circumference = 2 * Math.PI * radius;
   const filled = (clamped / 100) * circumference;
 
-  const bands = {
-    strong: { stroke: 'text-green-500', text: 'text-green-700', caption: 'Strong' },
-    fair: { stroke: 'text-amber-500', text: 'text-amber-700', caption: 'Needs work' },
-    weak: { stroke: 'text-red-500', text: 'text-red-700', caption: 'Needs rewriting' },
-  };
+  const band = getScoreBand(clamped);
 
-  let band = bands.weak;
-  if (clamped >= 70) band = bands.strong;
-  else if (clamped >= 40) band = bands.fair;
+  // The ring shows resume quality, not a job match, so the wording differs
+  // from the badge even though the thresholds and colours are shared.
+  const captions = { 'Strong match': 'Strong', 'Partial match': 'Needs work', 'Weak match': 'Needs rewriting' };
+  const caption = captions[band.caption];
 
   return (
     <div className="flex flex-col items-center">
@@ -47,7 +47,7 @@ function ScoreRing({ score, size = 168, label = 'Resume score' }) {
             r={radius}
             fill="none"
             strokeWidth={strokeWidth}
-            className="text-slate-200"
+            className="text-ink-200"
             stroke="currentColor"
           />
 
@@ -69,14 +69,14 @@ function ScoreRing({ score, size = 168, label = 'Resume score' }) {
         {/* The number sits on top of the ring rather than inside the SVG, so it
             uses normal text rendering and stays selectable. */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`text-4xl font-bold tabular-nums ${band.text}`}>
-            {Math.round(clamped)}
-          </span>
-          <span className="text-xs font-medium text-slate-400">out of 100</span>
+          {/* Proportional figures: this number is the content of the card,
+              not one of a column of numbers to be compared down the page. */}
+          <span className={`text-display ${band.text}`}>{Math.round(clamped)}</span>
+          <span className="text-label uppercase text-ink-400">out of 100</span>
         </div>
       </div>
 
-      <span className={`mt-3 text-sm font-semibold ${band.text}`}>{band.caption}</span>
+      <span className={`mt-3 text-body font-semibold ${band.text}`}>{caption}</span>
     </div>
   );
 }

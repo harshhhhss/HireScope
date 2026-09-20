@@ -37,15 +37,15 @@ function CandidateForm({ onCreate, isSaving }) {
   }
 
   const inputClass =
-    'mt-1 w-full rounded-md border border-slate-300 p-2 text-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 disabled:bg-slate-50';
+    'mt-1.5 w-full rounded-ui border border-ink-300 p-2.5 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50';
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="text-base font-semibold text-slate-900">Add a candidate</h2>
+    <form onSubmit={handleSubmit} className="rounded-ui border border-ink-200 bg-white p-6">
+      <h2 className="text-heading text-ink-900">Add a candidate</h2>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="name" className="block text-meta font-medium text-ink-700">
             Name
           </label>
           <input
@@ -61,7 +61,7 @@ function CandidateForm({ onCreate, isSaving }) {
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="email" className="block text-meta font-medium text-ink-700">
             Email
           </label>
           <input
@@ -78,7 +78,7 @@ function CandidateForm({ onCreate, isSaving }) {
       </div>
 
       <div className="mt-4">
-        <label htmlFor="resume_text" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="resume_text" className="block text-meta font-medium text-ink-700">
           Resume text
         </label>
         <textarea
@@ -97,7 +97,7 @@ function CandidateForm({ onCreate, isSaving }) {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="rounded-ui bg-primary-600 px-5 py-2.5 text-meta font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-ink-300"
         >
           {isSaving ? 'Saving...' : 'Add candidate'}
         </button>

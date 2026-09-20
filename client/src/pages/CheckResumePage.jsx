@@ -1,10 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { matchMyResume, scoreResume } from '../services/api';
 import ResumeInput from '../components/ResumeInput';
 import ScoreRing from '../components/ScoreRing';
 import SkillTags from '../components/SkillTags';
 import FitScoreBadge from '../components/FitScoreBadge';
 import Alert from '../components/Alert';
+import EmptyState from '../components/EmptyState';
+import { Check, FileSearch } from 'lucide-react';
+import ProgressTrend from '../components/ProgressTrend';
+import JobSearchPanel from '../components/JobSearchPanel';
+import PracticeQuestion from '../components/PracticeQuestion';
+import CoverLetterDraft from '../components/CoverLetterDraft';
+import { appendScore, clearHistory, readHistory } from '../services/resumeHistory';
 
 /**
  * The self-service flow: one person checking their own resume.
@@ -25,6 +32,13 @@ function CheckResumePage() {
   const [isScoring, setIsScoring] = useState(false);
   const [scoreError, setScoreError] = useState('');
 
+  // Past scores from this browser. Loaded once on mount; localStorage may be
+  // unavailable, in which case this stays empty and the trend never renders.
+  const [history, setHistory] = useState([]);
+  useEffect(() => {
+    setHistory(readHistory());
+  }, []);
+
   // Step 2: the optional match against a specific job.
   const [jobDescription, setJobDescription] = useState('');
   const [fit, setFit] = useState(null);
@@ -44,7 +58,11 @@ function CheckResumePage() {
     setMatchError('');
 
     try {
-      setQuality(await scoreResume(resumeText.trim()));
+      const result = await scoreResume(resumeText.trim());
+      setQuality(result);
+      // Record it so the next check can show a delta. appendScore returns the
+      // updated list, so there is no second read and no crash if storage fails.
+      setHistory(appendScore(result.overall_score));
     } catch (error) {
       setScoreError(error.message);
       setQuality(null);
@@ -73,16 +91,16 @@ function CheckResumePage() {
     <div className="mx-auto max-w-3xl space-y-8">
       {/* ---- Header ---- */}
       <header>
-        <h1 className="text-3xl font-bold text-slate-900">How good is your resume?</h1>
-        <p className="mt-2 text-slate-600">
+        <h1 className="text-title text-ink-900">How good is your resume?</h1>
+        <p className="mt-2 text-body text-ink-500">
           Paste it in or upload a file. You will get an honest score, what is working,
           and exactly what to fix - before you send it anywhere.
         </p>
       </header>
 
       {/* ---- Step 1: the resume ---- */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <h2 className="text-base font-semibold text-slate-900">Your resume</h2>
+      <section className="rounded-ui border border-ink-200 bg-white p-6">
+        <h2 className="text-heading text-ink-900">Your resume</h2>
 
         <div className="mt-4">
           <ResumeInput value={resumeText} onChange={setResumeText} disabled={isScoring} />
@@ -94,13 +112,13 @@ function CheckResumePage() {
           type="button"
           onClick={handleScore}
           disabled={!canScore}
-          className="mt-4 w-full rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
+          className="mt-5 w-full rounded-ui bg-primary-600 px-5 py-2.5 text-meta font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
         >
           {isScoring ? 'Reading your resume...' : 'Check my resume'}
         </button>
 
         {isScoring && (
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-meta text-ink-500">
             This usually takes a few seconds.
           </p>
         )}
@@ -108,24 +126,22 @@ function CheckResumePage() {
 
       {/* ---- Empty state: shown until the first analysis lands ---- */}
       {!quality && !isScoring && (
-        <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
-          <p className="text-sm font-medium text-slate-700">Your score will appear here</p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-            Add your resume above and hit <span className="font-medium">Check my resume</span>.
-            Nothing you paste here is saved or added to any recruiter&apos;s list.
-          </p>
-        </section>
+        <EmptyState
+          icon={FileSearch}
+          title="Your score will appear here"
+          description="Add your resume above and hit Check my resume. Nothing you paste here is saved or added to any recruiter's list."
+        />
       )}
 
       {/* ---- Step 1 result ---- */}
       {quality && (
-        <section className="space-y-6 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+        <section className="space-y-7 rounded-ui border border-ink-200 bg-white p-6">
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-8">
             <ScoreRing score={quality.overall_score} />
 
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-slate-900">Here is what I found</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <h2 className="text-heading text-ink-900">Here is what I found</h2>
+              <p className="mt-1 text-body text-ink-500">
                 Scored on concrete impact, evidence of real projects, and how quickly
                 someone can scan it.
               </p>
@@ -134,16 +150,11 @@ function CheckResumePage() {
 
           {quality.strengths.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">What is working</h3>
-              <ul className="mt-3 space-y-2">
+              <h3 className="text-label uppercase text-ink-400">What is working</h3>
+              <ul className="mt-2 divide-y divide-ink-200">
                 {quality.strengths.map((item, index) => (
-                  <li
-                    key={index}
-                    className="flex gap-3 rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-slate-700"
-                  >
-                    <span aria-hidden="true" className="font-bold text-green-600">
-                      +
-                    </span>
+                  <li key={index} className="flex gap-3 py-3 text-body text-ink-700">
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-good" aria-hidden="true" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -151,25 +162,21 @@ function CheckResumePage() {
             </div>
           )}
 
+          <ProgressTrend history={history} onClear={() => setHistory(clearHistory())} />
+
           {quality.improvements.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">What to fix next</h3>
-              <ul className="mt-3 space-y-2">
+              <h3 className="text-label uppercase text-ink-400">What to fix next</h3>
+              <ol className="mt-2 divide-y divide-ink-200">
                 {quality.improvements.map((item, index) => (
-                  <li
-                    key={index}
-                    className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm text-slate-700"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="font-semibold tabular-nums text-amber-600"
-                    >
+                  <li key={index} className="flex gap-3 py-3 text-body text-ink-700">
+                    <span className="text-meta font-semibold tabular-nums text-ink-400">
                       {index + 1}
                     </span>
                     <span>{item}</span>
                   </li>
                 ))}
-              </ul>
+              </ol>
             </div>
           )}
         </section>
@@ -177,14 +184,16 @@ function CheckResumePage() {
 
       {/* ---- Step 2: optional, and only once there is a score ---- */}
       {quality && (
-        <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <h2 className="text-base font-semibold text-slate-900">
-            Applying somewhere specific?
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <section className="rounded-ui border border-ink-200 bg-white p-6">
+          <h2 className="text-heading text-ink-900">Applying somewhere specific?</h2>
+          <p className="mt-1 text-body text-ink-500">
             Optional. Paste the job description and I will show how your resume lines up,
             which skills are missing, and what they are likely to ask you.
           </p>
+
+          <div className="mt-4">
+            <JobSearchPanel onSelectJob={setJobDescription} disabled={isMatching} />
+          </div>
 
           <textarea
             value={jobDescription}
@@ -192,7 +201,7 @@ function CheckResumePage() {
             disabled={isMatching}
             rows={7}
             placeholder="Paste the job description here..."
-            className="mt-4 w-full rounded-lg border border-slate-300 p-3 text-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 disabled:bg-slate-50"
+            className="mt-4 w-full rounded-ui border border-ink-300 p-3 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
           />
 
           <Alert type="error" message={matchError} onDismiss={() => setMatchError('')} />
@@ -201,13 +210,13 @@ function CheckResumePage() {
             type="button"
             onClick={handleMatch}
             disabled={!canMatch}
-            className="mt-4 w-full rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
+            className="mt-5 w-full rounded-ui bg-primary-600 px-5 py-2.5 text-meta font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
           >
             {isMatching ? 'Comparing...' : 'Compare with this job'}
           </button>
 
           {isMatching && (
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-meta text-ink-500">
               Scoring the match and writing practice questions - a few seconds.
             </p>
           )}
@@ -216,22 +225,24 @@ function CheckResumePage() {
 
       {/* ---- Step 2 result ---- */}
       {fit && (
-        <section className="space-y-6 rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-4">
+        <section className="space-y-7 rounded-ui border border-ink-200 bg-white p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">How you match this job</h2>
-              <p className="mt-1 text-sm text-slate-600">
+              <h2 className="text-heading text-ink-900">How you match this job</h2>
+              <p className="mt-1 text-body text-ink-500">
                 Based on how closely your resume reads like the posting.
               </p>
             </div>
-            <FitScoreBadge score={fit.fit_score} />
+            {/* The score is the point of this card, so it gets the headline
+                treatment rather than sitting in the corner as a chip. */}
+            <FitScoreBadge score={fit.fit_score} variant="headline" />
           </div>
 
           {fit.warning && <Alert type="info" message={fit.warning} />}
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Skills you already have</h3>
+              <h3 className="text-label uppercase text-ink-400">Skills you already have</h3>
               <div className="mt-2">
                 <SkillTags
                   skills={fit.matched_skills}
@@ -242,7 +253,7 @@ function CheckResumePage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Skills they want that I could not find</h3>
+              <h3 className="text-label uppercase text-ink-400">Areas to develop</h3>
               <div className="mt-2">
                 <SkillTags
                   skills={fit.missing_skills}
@@ -255,22 +266,28 @@ function CheckResumePage() {
 
           {fit.interview_questions.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">
-                Practice these before you apply
+              <h3 className="text-label uppercase text-ink-400">
+                Practise these before you apply
               </h3>
-              <ol className="mt-3 space-y-2">
+              <ol className="mt-2 divide-y divide-ink-200">
                 {fit.interview_questions.map((question, index) => (
-                  <li
+                  <PracticeQuestion
                     key={index}
-                    className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700"
-                  >
-                    <span className="font-semibold text-slate-400">{index + 1}.</span>
-                    <span>{question}</span>
-                  </li>
+                    index={index}
+                    question={question}
+                    resumeText={resumeText.trim()}
+                    missingSkills={fit.missing_skills}
+                  />
                 ))}
               </ol>
             </div>
           )}
+
+          <CoverLetterDraft
+            resumeText={resumeText.trim()}
+            jobDescription={jobDescription.trim()}
+            matchedSkills={fit.matched_skills}
+          />
         </section>
       )}
     </div>
