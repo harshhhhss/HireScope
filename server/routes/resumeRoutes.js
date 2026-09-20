@@ -1,8 +1,15 @@
 const express = require('express');
 const multer = require('multer');
 
-const { scoreResume, uploadResume, matchResume } = require('../controllers/resumeController');
+const {
+  scoreResume,
+  uploadResume,
+  matchResume,
+  interviewFeedback,
+  coverLetter,
+} = require('../controllers/resumeController');
 const { MAX_FILE_BYTES } = require('../services/resumeTextService');
+const { aiLimiter, uploadLimiter } = require('../middleware/rateLimiters');
 
 const router = express.Router();
 
@@ -47,13 +54,19 @@ function handleUploadErrors(err, req, res, next) {
 }
 
 // POST /api/v1/resume/score  - rate a resume on its own, no job description
-router.post('/score', scoreResume);
+router.post('/score', aiLimiter, scoreResume);
 
 // POST /api/v1/resume/upload - PDF or DOCX in, plain text out
 // single('resume') means one file, in a form field named "resume".
-router.post('/upload', upload.single('resume'), handleUploadErrors, uploadResume);
+router.post('/upload', uploadLimiter, upload.single('resume'), handleUploadErrors, uploadResume);
 
 // POST /api/v1/resume/match  - score one resume against one job description
-router.post('/match', matchResume);
+router.post('/match', aiLimiter, matchResume);
+
+// POST /api/v1/resume/interview-feedback - grade one practice answer
+router.post('/interview-feedback', aiLimiter, interviewFeedback);
+
+// POST /api/v1/resume/cover-letter - draft a letter from the resume + posting
+router.post('/cover-letter', aiLimiter, coverLetter);
 
 module.exports = router;

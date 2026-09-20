@@ -309,6 +309,26 @@ Return ONLY a JSON object in exactly this shape:
 }
 
 /**
+ * Repair a JSON object whose last key was started and then abandoned.
+ *
+ * Only ever removes trailing junk after the last complete value and re-closes
+ * the object. It cannot invent data: if the salvaged text is still not valid
+ * JSON the caller throws, so a genuinely broken reply is still rejected.
+ */
+function repairTrailingFragment(text) {
+  let candidate = text.trim();
+
+  if (candidate.endsWith('}')) candidate = candidate.slice(0, -1);
+
+  // A dangling key: a comma, then an opening quote with no closing one.
+  candidate = candidate.replace(/,\s*"[^"]*$/, '');
+  // Or just a trailing comma left behind.
+  candidate = candidate.replace(/,\s*$/, '');
+
+  return `${candidate}}`;
+}
+
+/**
  * Turn the model's reply into a result we are willing to show the user.
  *
  * Everything is clamped and bounded here rather than trusted: the score is
@@ -325,7 +345,16 @@ function parseResumeQuality(rawText) {
   try {
     parsed = JSON.parse(cleaned);
   } catch (error) {
-    throw new Error('Gemini did not return valid JSON for the resume score');
+    // Roughly one reply in five finishes all three fields, then starts a
+    // fourth key and abandons it, leaving `..."], "}` - valid content with a
+    // dangling fragment glued on. finishReason is STOP, not MAX_TOKENS, so the
+    // truncation check upstream cannot catch it. Drop the fragment and retry
+    // the parse rather than throwing away a complete answer.
+    try {
+      parsed = JSON.parse(repairTrailingFragment(cleaned));
+    } catch (repairError) {
+      throw new Error('Gemini did not return valid JSON for the resume score');
+    }
   }
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -381,13 +410,204 @@ async function scoreResumeQuality(resumeText) {
   return parseResumeQuality(rawText);
 }
 
+/**
+ * Prompt for judging one practice answer to one interview question.
+ *
+ * The rules push towards usable coaching rather than praise. Two things matter
+ * most: whether the answer is grounded in something the candidate actually did,
+ * and - for the questions that probe a gap - whether they addressed the gap
+ * honestly or talked around it. Dodging is the most common failure in a real
+ * screening call, and the most useful thing to be told about.
+ */
+function buildAnswerFeedbackPrompt(question, resumeText, missingSkills, answerText) {
+  const gaps = missingSkills.length > 0 ? missingSkills.join(', ') : 'none identified';
+
+  return `You are a technical interviewer giving a candidate honest feedback on one practice answer.
+
+The question they were asked:
+"""
+${question}
+"""
+
+Their answer:
+"""
+${answerText}
+"""
+
+Their resume, for checking whether the answer is grounded in real experience:
+"""
+${resumeText}
+"""
+
+Skills the job wants that their resume does not evidence: ${gaps}
+
+Judge the answer on:
+- Does it actually answer the question asked, or answer a different, easier one?
+- Is it grounded in specifics from their resume, or is it generic?
+- If the question probes one of the missing skills, do they address that gap honestly (what they do know, how they would approach it) or talk around it?
+
+Rules:
+- "verdict" is one of exactly: "strong", "needs work", "off target".
+- "summary" is one sentence, under 25 words, saying what the answer does well or fails to do.
+- "suggestions" is 2 or 3 items. Each must be concrete and about THIS answer, quoting what they said or naming what is missing. Never generic advice like "add more detail" or "be more confident".
+- Be honest. A vague or evasive answer is not "strong".
+
+Return ONLY a JSON object in exactly this shape:
+{"verdict": "needs work", "summary": "...", "suggestions": ["...", "..."]}`;
+}
+
+/**
+ * Parse the feedback reply, clamping everything to a shape the UI can render.
+ */
+function parseAnswerFeedback(rawText) {
+  const cleaned = stripJsonFences(rawText);
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (error) {
+    try {
+      parsed = JSON.parse(repairTrailingFragment(cleaned));
+    } catch (repairError) {
+      throw new Error('Gemini did not return valid JSON for the answer feedback');
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Gemini returned an unexpected shape for the answer feedback');
+  }
+
+  // Anything outside the three known verdicts falls back to the neutral one,
+  // so an unexpected word cannot break the badge that renders it.
+  const allowed = ['strong', 'needs work', 'off target'];
+  const rawVerdict = String(parsed.verdict ?? '').trim().toLowerCase();
+  const verdict = allowed.includes(rawVerdict) ? rawVerdict : 'needs work';
+
+  const summary = String(parsed.summary ?? '').trim();
+
+  const suggestions = (Array.isArray(parsed.suggestions) ? parsed.suggestions : [])
+    .filter((item) => typeof item === 'string' || Number.isFinite(item))
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  if (!summary && suggestions.length === 0) {
+    throw new Error('Gemini returned empty feedback');
+  }
+
+  return { verdict, summary, suggestions };
+}
+
+/**
+ * Give feedback on one practice answer.
+ *
+ * @param {string} question
+ * @param {string} resumeText
+ * @param {string[]} missingSkills
+ * @param {string} answerText
+ * @returns {Promise<{verdict: string, summary: string, suggestions: string[]}>}
+ */
+async function evaluateInterviewAnswer(question, resumeText, missingSkills = [], answerText) {
+  const rawText = await requestGemini(
+    buildAnswerFeedbackPrompt(question, resumeText, missingSkills, answerText),
+    {
+      // Low: this is an assessment, and the same answer should get broadly the
+      // same verdict each time it is submitted.
+      temperature: 0.3,
+      label: 'answer feedback',
+    }
+  );
+
+  return parseAnswerFeedback(rawText);
+}
+
+/**
+ * Prompt for a cover letter.
+ *
+ * The hard constraint is that every claim has to be traceable to the resume.
+ * A letter that invents enthusiasm or experience is worse than no letter: it
+ * reads as boilerplate to the reader and is a trap for the candidate if they
+ * are asked about it.
+ */
+function buildCoverLetterPrompt(resumeText, jobDescription, matchedSkills) {
+  const evidenced =
+    matchedSkills.length > 0
+      ? matchedSkills.join(', ')
+      : 'none were detected automatically - rely on the resume text';
+
+  return `You are helping a candidate draft a cover letter for a specific job.
+
+Their resume:
+"""
+${resumeText}
+"""
+
+The job description:
+"""
+${jobDescription}
+"""
+
+Skills the job asks for that their resume genuinely evidences: ${evidenced}
+
+Rules:
+- Every claim must be traceable to something in the resume. Do not invent experience, employers, dates, numbers or enthusiasm.
+- Name specific projects and technologies from the resume where they line up with the posting.
+- Do not include generic filler such as "I am a passionate and dedicated professional" or "I believe I would be a great fit".
+- Do not mention skills the candidate does not have.
+- 3 or 4 short paragraphs, under 250 words in total.
+- Plain text. No markdown, no bullet points.
+- Start with "Dear Hiring Manager," and end with "Sincerely," on its own line. If the resume states the candidate's name, put it on the line after that; if it does not, end at "Sincerely," and leave the name for them to add.
+
+Return ONLY a JSON object in exactly this shape:
+{"cover_letter": "Dear Hiring Manager,\\n\\n..."}`;
+}
+
+/**
+ * Draft a cover letter grounded in the resume and the posting.
+ *
+ * @returns {Promise<string>} the letter as plain text
+ */
+async function generateCoverLetter(resumeText, jobDescription, matchedSkills = []) {
+  const rawText = await requestGemini(
+    buildCoverLetterPrompt(resumeText, jobDescription, matchedSkills),
+    {
+      // A little room to write naturally, but not enough to start embellishing.
+      temperature: 0.6,
+      label: 'cover letter',
+    }
+  );
+
+  const cleaned = stripJsonFences(rawText);
+
+  let letter;
+  try {
+    const parsed = JSON.parse(cleaned);
+    letter = typeof parsed?.cover_letter === 'string' ? parsed.cover_letter.trim() : '';
+  } catch (error) {
+    // The letter is prose, so a reply that is not JSON is still usable as-is.
+    // Unlike the structured endpoints there are no fields to lose.
+    letter = cleaned;
+  }
+
+  if (!letter) {
+    throw new Error('Gemini returned an empty cover letter');
+  }
+
+  return letter;
+}
+
 module.exports = {
   generateInterviewQuestions,
   scoreResumeQuality,
+  evaluateInterviewAnswer,
+  generateCoverLetter,
   buildPrompt,
   buildResumeQualityPrompt,
+  buildAnswerFeedbackPrompt,
+  buildCoverLetterPrompt,
   parseQuestions,
   parseResumeQuality,
+  parseAnswerFeedback,
   extractText,
   requestGemini,
 };

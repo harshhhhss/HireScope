@@ -1,5 +1,10 @@
 const { getMatchScore } = require('../services/matchService');
-const { generateInterviewQuestions, scoreResumeQuality } = require('../services/aiService');
+const {
+  generateInterviewQuestions,
+  scoreResumeQuality,
+  evaluateInterviewAnswer,
+  generateCoverLetter,
+} = require('../services/aiService');
 const { extractResumeText } = require('../services/resumeTextService');
 
 /**
@@ -142,4 +147,79 @@ async function matchResume(req, res) {
   }
 }
 
-module.exports = { scoreResume, uploadResume, matchResume };
+/**
+ * POST /api/v1/resume/interview-feedback
+ *
+ * Body: { "question": "…", "answer": "…", "resume_text": "…", "missing_skills": [] }
+ *
+ * Grades one practice answer. Saves nothing - this is practice, and a student
+ * rehearsing should not be leaving a record behind.
+ */
+async function interviewFeedback(req, res) {
+  const { question, answer, resume_text, missing_skills } = req.body;
+
+  const invalidQuestion = validateText(question, 'question');
+  if (invalidQuestion) {
+    return res.status(400).json({ success: false, error: invalidQuestion });
+  }
+
+  const invalidAnswer = validateText(answer, 'answer');
+  if (invalidAnswer) {
+    return res.status(400).json({ success: false, error: invalidAnswer });
+  }
+
+  const invalidResume = validateText(resume_text, 'resume_text');
+  if (invalidResume) {
+    return res.status(400).json({ success: false, error: invalidResume });
+  }
+
+  try {
+    const feedback = await evaluateInterviewAnswer(
+      question.trim(),
+      resume_text.trim(),
+      Array.isArray(missing_skills) ? missing_skills : [],
+      answer.trim()
+    );
+
+    return res.status(200).json({ success: true, ...feedback });
+  } catch (error) {
+    console.error(`POST /api/v1/resume/interview-feedback failed: ${error.message}`);
+    return res.status(502).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * POST /api/v1/resume/cover-letter
+ *
+ * Body: { "resume_text": "…", "job_description": "…", "matched_skills": [] }
+ *
+ * Drafts a cover letter grounded in the resume. Saves nothing.
+ */
+async function coverLetter(req, res) {
+  const { resume_text, job_description, matched_skills } = req.body;
+
+  const invalidResume = validateText(resume_text, 'resume_text');
+  if (invalidResume) {
+    return res.status(400).json({ success: false, error: invalidResume });
+  }
+
+  const invalidJob = validateText(job_description, 'job_description');
+  if (invalidJob) {
+    return res.status(400).json({ success: false, error: invalidJob });
+  }
+
+  try {
+    const letter = await generateCoverLetter(
+      resume_text.trim(),
+      job_description.trim(),
+      Array.isArray(matched_skills) ? matched_skills : []
+    );
+
+    return res.status(200).json({ success: true, cover_letter: letter });
+  } catch (error) {
+    console.error(`POST /api/v1/resume/cover-letter failed: ${error.message}`);
+    return res.status(502).json({ success: false, error: error.message });
+  }
+}
+
+module.exports = { scoreResume, uploadResume, matchResume, interviewFeedback, coverLetter };

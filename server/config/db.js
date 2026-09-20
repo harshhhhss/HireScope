@@ -5,7 +5,10 @@ const mongoose = require('mongoose');
  * Mongoose pools connections internally, so we call this once on startup.
  */
 async function connectDB() {
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/hirescope';
+  // No fallback: validateEnv() has already guaranteed this is set. A default
+  // here would silently connect a misconfigured deploy to a local database
+  // that does not exist, which is harder to diagnose than failing outright.
+  const uri = process.env.MONGO_URI;
 
   try {
     const conn = await mongoose.connect(uri);
