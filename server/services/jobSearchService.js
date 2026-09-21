@@ -31,19 +31,33 @@ function isConfigured() {
  * Adzuna returns descriptions with HTML entities and tags in them. The text
  * goes into a textarea and then to the ML service and Gemini, so strip it.
  */
-function toPlainText(value) {
-  if (typeof value !== 'string') return '';
-
+function decodeEntities(value) {
   return value
-    .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    // &amp; last, so "&amp;lt;" becomes "&lt;" rather than "<" on this pass.
+    .replace(/&amp;/g, '&');
+}
+
+function toPlainText(value) {
+  if (typeof value !== 'string') return '';
+
+  // Entities are decoded BEFORE tags are stripped. Greenhouse returns markup
+  // that is itself HTML-escaped ("&lt;h2&gt;"), so decoding afterwards would
+  // turn escaped text into real tags at the point where it is too late to
+  // remove them - which is exactly what used to happen.
+  let text = decodeEntities(value);
+
+  // Block-level tags become a space so words either side do not run together.
+  text = text.replace(/<[^>]+>/g, ' ');
+
+  // A second pass catches markup that was double-escaped at the source.
+  text = decodeEntities(text).replace(/<[^>]+>/g, ' ');
+
+  return text.replace(/\s+/g, ' ').trim();
 }
 
 /**

@@ -239,4 +239,49 @@ export async function getCoverLetter({ resumeText, jobDescription, matchedSkills
   }
 }
 
+/**
+ * GET /api/v1/jobs/companies - company boards we can browse directly.
+ * Needs no credentials, so it works even when Adzuna is unconfigured.
+ */
+export async function getJobCompanies() {
+  try {
+    const response = await api.get('/jobs/companies');
+    return response.data.companies ?? [];
+  } catch (error) {
+    // A missing company list should never break the panel; the Adzuna search
+    // still works without it.
+    return [];
+  }
+}
+
+/**
+ * GET /api/v1/jobs/company/:slug - search one company's own board.
+ *
+ * Results come back without descriptions (the full board with bodies is ~5MB),
+ * so each carries needs_detail and the text is fetched on selection.
+ */
+export async function searchCompanyJobs(slug, keywords, location = '') {
+  try {
+    const response = await api.get(`/jobs/company/${slug}`, {
+      params: { q: keywords, ...(location ? { location } : {}) },
+    });
+    return response.data.results ?? [];
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
+/**
+ * GET /api/v1/jobs/company/:slug/:jobId - the full text of one posting.
+ * @returns {Promise<string>} the description as plain text
+ */
+export async function getCompanyJobDescription(slug, jobId) {
+  try {
+    const response = await api.get(`/jobs/company/${slug}/${jobId}`);
+    return response.data.description ?? '';
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
 export default api;

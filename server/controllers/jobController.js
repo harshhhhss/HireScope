@@ -1,4 +1,9 @@
 const { searchJobs, isConfigured } = require('../services/jobSearchService');
+const {
+  listCompanies,
+  searchCompanyJobs,
+  getCompanyJobDescription,
+} = require('../services/companyJobsService');
 
 /**
  * Browsing real job openings.
@@ -50,4 +55,59 @@ async function searchJobListings(req, res) {
   }
 }
 
-module.exports = { searchJobListings };
+/**
+ * GET /api/v1/jobs/companies
+ *
+ * The companies whose own boards we can browse. Needs no credentials, so it
+ * works even when Adzuna is unconfigured.
+ */
+function listSupportedCompanies(req, res) {
+  return res.status(200).json({ success: true, companies: listCompanies() });
+}
+
+/**
+ * GET /api/v1/jobs/company/:slug?q=<keywords>&location=<optional>
+ *
+ * Search one company's own job board. Results carry no description: the board
+ * listing with bodies is around 5MB, so the text is fetched for the single
+ * posting the user picks, via the endpoint below.
+ */
+async function searchCompanyJobListings(req, res) {
+  const { slug } = req.params;
+  const { q, location } = req.query;
+
+  try {
+    const jobs = await searchCompanyJobs(slug, (q ?? '').trim(), (location ?? '').trim());
+    return res.status(200).json({ success: true, count: jobs.length, results: jobs });
+  } catch (error) {
+    console.error(`GET /api/v1/jobs/company/${slug} failed: ${error.message}`);
+    // An unknown slug is the caller's mistake; anything else is upstream.
+    const status = /Unknown company/.test(error.message) ? 400 : 502;
+    return res.status(status).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * GET /api/v1/jobs/company/:slug/:jobId
+ *
+ * The full text of one posting, ready to drop into the match flow.
+ */
+async function getCompanyJobDetail(req, res) {
+  const { slug, jobId } = req.params;
+
+  try {
+    const job = await getCompanyJobDescription(slug, jobId);
+    return res.status(200).json({ success: true, ...job });
+  } catch (error) {
+    console.error(`GET /api/v1/jobs/company/${slug}/${jobId} failed: ${error.message}`);
+    const status = /Unknown company|no longer listed/.test(error.message) ? 404 : 502;
+    return res.status(status).json({ success: false, error: error.message });
+  }
+}
+
+module.exports = {
+  searchJobListings,
+  listSupportedCompanies,
+  searchCompanyJobListings,
+  getCompanyJobDetail,
+};
