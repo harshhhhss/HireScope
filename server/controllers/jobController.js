@@ -4,6 +4,7 @@ const {
   searchCompanyJobs,
   getCompanyJobDescription,
 } = require('../services/companyJobsService');
+const { extractJobFromUrl } = require('../services/urlJobService');
 
 /**
  * Browsing real job openings.
@@ -105,8 +106,42 @@ async function getCompanyJobDetail(req, res) {
   }
 }
 
+/**
+ * POST /api/v1/jobs/from-url
+ *
+ * Body: { "url": "https://..." }
+ *
+ * The catch-all: fetch any job page server-side and pull out its text. Pages
+ * that build themselves in the browser cannot be read this way, and that comes
+ * back as a plain 422 telling the user to paste the text instead - it is a
+ * limitation of the page, not a fault they can retry past.
+ */
+async function jobFromUrl(req, res) {
+  const { url } = req.body;
+
+  if (typeof url !== 'string' || url.trim().length === 0) {
+    return res.status(400).json({ success: false, error: 'url is required' });
+  }
+
+  try {
+    const job = await extractJobFromUrl(url.trim());
+    return res.status(200).json({ success: true, ...job });
+  } catch (error) {
+    console.error(`POST /api/v1/jobs/from-url failed: ${error.message}`);
+
+    // 422: we reached the page and understood it, but there was nothing to
+    // take. Distinct from a 502, where the fetch itself failed.
+    const unreadable = /Could not extract|not a web page/.test(error.message);
+    const clientFault = /valid URL|private address|http and https/.test(error.message);
+    const status = clientFault ? 400 : unreadable ? 422 : 502;
+
+    return res.status(status).json({ success: false, error: error.message });
+  }
+}
+
 module.exports = {
   searchJobListings,
+  jobFromUrl,
   listSupportedCompanies,
   searchCompanyJobListings,
   getCompanyJobDetail,

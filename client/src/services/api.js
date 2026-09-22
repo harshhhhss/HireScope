@@ -284,4 +284,22 @@ export async function getCompanyJobDescription(slug, jobId) {
   }
 }
 
+/**
+ * POST /api/v1/jobs/from-url - pull a posting out of any job page link.
+ *
+ * Pages that render in the browser cannot be read server-side; that comes back
+ * as a 422 whose message tells the user to paste the text instead.
+ *
+ * @returns {Promise<{title: string, description: string, characters: number}>}
+ */
+export async function getJobFromUrl(url) {
+  try {
+    const response = await api.post('/jobs/from-url', { url });
+    const { title, description, characters } = response.data;
+    return { title, description, characters };
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
 export default api;

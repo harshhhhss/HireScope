@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, ExternalLink, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, ExternalLink, Link2, Search } from 'lucide-react';
 import {
   getCompanyJobDescription,
   getJobCompanies,
+  getJobFromUrl,
   searchCompanyJobs,
   searchJobs,
 } from '../services/api';
@@ -36,6 +37,11 @@ function JobSearchPanel({ onSelectJob, disabled }) {
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [adzunaUnavailable, setAdzunaUnavailable] = useState(false);
+
+  // The paste-a-link fallback, for employers no source above covers.
+  const [jobUrl, setJobUrl] = useState('');
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
+  const [urlError, setUrlError] = useState('');
 
   // The company list needs no credentials, so it loads regardless of whether
   // Adzuna is configured. Fetched once, when the panel is first expanded.
@@ -102,6 +108,24 @@ function JobSearchPanel({ onSelectJob, disabled }) {
       setError(detailError.message);
     } finally {
       setLoadingJobId(null);
+    }
+  }
+
+  async function handleUrlFetch(event) {
+    event.preventDefault();
+    if (!jobUrl.trim() || isFetchingUrl) return;
+
+    setIsFetchingUrl(true);
+    setUrlError('');
+
+    try {
+      const { description } = await getJobFromUrl(jobUrl.trim());
+      onSelectJob(description);
+      setJobUrl('');
+    } catch (fetchError) {
+      setUrlError(fetchError.message);
+    } finally {
+      setIsFetchingUrl(false);
     }
   }
 
@@ -233,6 +257,40 @@ function JobSearchPanel({ onSelectJob, disabled }) {
               ))}
             </ul>
           )}
+
+          {/* ---- Paste a link, for anything the sources above miss ---- */}
+          <form onSubmit={handleUrlFetch} className="mt-5 border-t border-ink-200 pt-4">
+            <label className="flex flex-col gap-1">
+              <span className="flex items-center gap-1.5 text-label uppercase text-ink-400">
+                <Link2 className="h-3 w-3" aria-hidden="true" />
+                Or paste a job link
+              </span>
+              <span className="text-meta text-ink-500">
+                Works for pages that include their text in the HTML, such as Google
+                Careers. Sites that build the page in your browser cannot be read.
+              </span>
+            </label>
+
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                type="url"
+                value={jobUrl}
+                onChange={(event) => setJobUrl(event.target.value)}
+                disabled={disabled || isFetchingUrl}
+                placeholder="https://careers.example.com/jobs/12345"
+                className="flex-1 rounded-ui border border-ink-300 px-3 py-2 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
+              />
+              <button
+                type="submit"
+                disabled={disabled || isFetchingUrl || !jobUrl.trim()}
+                className="rounded-ui border border-ink-300 px-4 py-2 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isFetchingUrl ? 'Reading...' : 'Fetch'}
+              </button>
+            </div>
+
+            {urlError && <p className="mt-2 text-meta text-critical-ink">{urlError}</p>}
+          </form>
         </div>
       )}
     </div>

@@ -1,5 +1,7 @@
 const axios = require('axios');
 const { toPlainText } = require('./jobSearchService');
+const { searchAmazonJobs } = require('./amazonJobsService');
+const { searchLeverJobs } = require('./leverJobsService');
 
 /**
  * Job boards published directly by companies, via Greenhouse.
@@ -16,6 +18,13 @@ const { toPlainText } = require('./jobSearchService');
  * search across it: you query one company at a time, by its board token. That
  * is why the list below is curated rather than discovered - every token here
  * was verified to return a live board.
+ *
+ * Three providers sit behind one list, so the client only ever picks a company
+ * and never has to know which ATS is underneath:
+ *
+ *   greenhouse - listing is cheap, body costs a second request
+ *   lever      - listing already carries the body
+ *   amazon     - amazon.jobs' own search endpoint, body included
  */
 
 const GREENHOUSE_BASE = 'https://boards-api.greenhouse.io/v1/boards';
@@ -28,18 +37,23 @@ const MAX_RESULTS = 20;
  * Adzuna remains the route to those.
  */
 const COMPANIES = [
-  { slug: 'stripe', name: 'Stripe' },
-  { slug: 'databricks', name: 'Databricks' },
-  { slug: 'anthropic', name: 'Anthropic' },
-  { slug: 'mongodb', name: 'MongoDB' },
-  { slug: 'cloudflare', name: 'Cloudflare' },
-  { slug: 'coinbase', name: 'Coinbase' },
-  { slug: 'gitlab', name: 'GitLab' },
-  { slug: 'robinhood', name: 'Robinhood' },
-  { slug: 'reddit', name: 'Reddit' },
-  { slug: 'figma', name: 'Figma' },
-  { slug: 'twilio', name: 'Twilio' },
-  { slug: 'duolingo', name: 'Duolingo' },
+  // Amazon first: of everything here it is the one that actually recruits at
+  // Indian campuses in volume.
+  { slug: 'amazon', name: 'Amazon (India)', provider: 'amazon' },
+  // The single Lever board that survived probing ten mid-size Indian firms.
+  { slug: 'meesho', name: 'Meesho', provider: 'lever', board: 'meesho' },
+  { slug: 'stripe', name: 'Stripe', provider: 'greenhouse' },
+  { slug: 'databricks', name: 'Databricks', provider: 'greenhouse' },
+  { slug: 'anthropic', name: 'Anthropic', provider: 'greenhouse' },
+  { slug: 'mongodb', name: 'MongoDB', provider: 'greenhouse' },
+  { slug: 'cloudflare', name: 'Cloudflare', provider: 'greenhouse' },
+  { slug: 'coinbase', name: 'Coinbase', provider: 'greenhouse' },
+  { slug: 'gitlab', name: 'GitLab', provider: 'greenhouse' },
+  { slug: 'robinhood', name: 'Robinhood', provider: 'greenhouse' },
+  { slug: 'reddit', name: 'Reddit', provider: 'greenhouse' },
+  { slug: 'figma', name: 'Figma', provider: 'greenhouse' },
+  { slug: 'twilio', name: 'Twilio', provider: 'greenhouse' },
+  { slug: 'duolingo', name: 'Duolingo', provider: 'greenhouse' },
 ];
 
 /**
@@ -102,6 +116,28 @@ async function searchCompanyJobs(slug, keywords = '', location = '') {
     throw new Error(`Unknown company "${slug}". Call /api/v1/jobs/companies for the list.`);
   }
 
+  // Amazon and Lever return the description with the listing, so they answer
+  // here and never reach the Greenhouse path below.
+  if (company.provider === 'amazon') {
+    try {
+      return await searchAmazonJobs(keywords, location);
+    } catch (error) {
+      console.error(`Amazon search failed: ${error.message}`);
+      // An empty list lets the client fall back to another source rather than
+      // failing the whole request.
+      return [];
+    }
+  }
+
+  if (company.provider === 'lever') {
+    try {
+      return await searchLeverJobs(company.board, company.name, keywords, location);
+    } catch (error) {
+      console.error(`Lever search failed for ${company.name}: ${error.message}`);
+      return [];
+    }
+  }
+
   let jobs;
   try {
     jobs = await fetchBoard(slug);
@@ -153,6 +189,12 @@ async function getCompanyJobDescription(slug, jobId) {
   const company = findCompany(slug);
   if (!company) {
     throw new Error(`Unknown company "${slug}".`);
+  }
+
+  // Only Greenhouse withholds the body from its listing; the others already
+  // sent it, so asking for it again is a caller error worth naming.
+  if (company.provider !== 'greenhouse') {
+    throw new Error(`${company.name} listings already include the description.`);
   }
 
   try {

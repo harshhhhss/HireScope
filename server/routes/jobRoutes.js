@@ -4,6 +4,7 @@ const {
   listSupportedCompanies,
   searchCompanyJobListings,
   getCompanyJobDetail,
+  jobFromUrl,
 } = require('../controllers/jobController');
 const { jobSearchLimiter } = require('../middleware/rateLimiters');
 
@@ -11,6 +12,9 @@ const router = express.Router();
 
 // GET /api/v1/jobs/search?q=<keywords>&location=<optional>
 router.get('/search', jobSearchLimiter, searchJobListings);
+
+// POST /api/v1/jobs/from-url - extract a posting from any pasted link
+router.post('/from-url', jobSearchLimiter, jobFromUrl);
 
 // GET /api/v1/jobs/companies - which company boards can be browsed
 router.get('/companies', listSupportedCompanies);
