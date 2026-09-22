@@ -30,7 +30,11 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const REQUEST_TIMEOUT_MS = 30000;
+// 30s was too tight. Measured round trips for a trivial prompt on a mobile
+// connection: 30s, 69s, 32s - so every call failed on latency alone, and a
+// timeout is not one of the retryable statuses, so it failed on first attempt.
+// 90s stays inside the client's 120s ceiling while tolerating a slow link.
+const REQUEST_TIMEOUT_MS = 90000;
 
 // Current Gemini models reason internally before answering, and those thinking
 // tokens come out of this same budget. Measured on this prompt: ~834 thinking
