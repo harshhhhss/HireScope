@@ -242,6 +242,9 @@ function CheckResumePage() {
 
           {fit.warning && <Alert type="info" message={fit.warning} />}
 
+          {/* What kind of number this is, then the working behind it. */}
+          <MethodologyNote />
+
           <ScoreBreakdown
             fitScore={fit.fit_score}
             similarity={fit.similarity}
