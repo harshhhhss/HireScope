@@ -165,11 +165,22 @@ export async function matchMyResume(resumeText, jobDescription) {
       job_description: jobDescription,
     });
 
-    const { fit_score, matched_skills, missing_skills, interview_questions, warning } =
-      response.data;
+    const {
+      fit_score,
+      similarity,
+      top_matches,
+      matched_skills,
+      missing_skills,
+      interview_questions,
+      warning,
+    } = response.data;
 
     return {
       fit_score,
+      // The raw cosine value and the sentence pairs behind it. Both default
+      // safely so an older server that omits them does not break the page.
+      similarity: typeof similarity === 'number' ? similarity : null,
+      top_matches: top_matches ?? [],
       matched_skills: matched_skills ?? [],
       missing_skills: missing_skills ?? [],
       interview_questions: interview_questions ?? [],

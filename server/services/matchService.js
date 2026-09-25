@@ -19,7 +19,7 @@ const REQUEST_TIMEOUT_MS = 15000;
  *
  * @param {string} jobDescription - the job description text
  * @param {string} resumeText     - one candidate's resume text
- * @returns {Promise<{fit_score: number, matched_skills: string[], missing_skills: string[]}>}
+ * @returns {Promise<{fit_score: number, similarity: number|null, top_matches: object[], matched_skills: string[], missing_skills: string[]}>}
  */
 async function getMatchScore(jobDescription, resumeText) {
   try {
@@ -35,12 +35,18 @@ async function getMatchScore(jobDescription, resumeText) {
       }
     );
 
-    const { fit_score, matched_skills, missing_skills } = response.data;
+    const { fit_score, similarity, top_matches, matched_skills, missing_skills } = response.data;
 
     // Normalise the shape before it travels any further, so a malformed
     // response from the ML service cannot put junk into MongoDB.
     return {
       fit_score: typeof fit_score === 'number' ? fit_score : 0,
+      // The raw cosine value behind fit_score. Passed through so the client can
+      // show the arithmetic instead of only the result.
+      similarity: typeof similarity === 'number' ? similarity : null,
+      // The sentence pairs that best explain the score. Defaults to empty so an
+      // older ml-service that does not send them degrades quietly.
+      top_matches: Array.isArray(top_matches) ? top_matches : [],
       matched_skills: Array.isArray(matched_skills) ? matched_skills : [],
       missing_skills: Array.isArray(missing_skills) ? missing_skills : [],
     };

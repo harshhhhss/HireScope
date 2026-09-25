@@ -11,6 +11,8 @@ import ProgressTrend from '../components/ProgressTrend';
 import JobSearchPanel from '../components/JobSearchPanel';
 import PracticeQuestion from '../components/PracticeQuestion';
 import CoverLetterDraft from '../components/CoverLetterDraft';
+import ScoreBreakdown from '../components/ScoreBreakdown';
+import MethodologyNote from '../components/MethodologyNote';
 import { appendScore, clearHistory, readHistory } from '../services/resumeHistory';
 
 /**
@@ -239,6 +241,14 @@ function CheckResumePage() {
           </div>
 
           {fit.warning && <Alert type="info" message={fit.warning} />}
+
+          <ScoreBreakdown
+            fitScore={fit.fit_score}
+            similarity={fit.similarity}
+            topMatches={fit.top_matches}
+            matchedSkills={fit.matched_skills}
+            missingSkills={fit.missing_skills}
+          />
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div>

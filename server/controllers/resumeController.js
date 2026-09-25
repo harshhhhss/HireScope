@@ -115,10 +115,8 @@ async function matchResume(req, res) {
   try {
     // 1. Semantic score + skills diff from the Python service. Without this
     //    there is no result at all, so a failure here fails the request.
-    const { fit_score, matched_skills, missing_skills } = await getMatchScore(
-      job_description.trim(),
-      resume_text.trim()
-    );
+    const { fit_score, similarity, top_matches, matched_skills, missing_skills } =
+      await getMatchScore(job_description.trim(), resume_text.trim());
 
     // 2. Interview questions are the optional half, exactly as in the
     //    recruiter flow: if Gemini is rate limited we still return the score
@@ -136,6 +134,11 @@ async function matchResume(req, res) {
     return res.status(200).json({
       success: true,
       fit_score,
+      // The breakdown behind the score: the raw cosine value and the sentence
+      // pairs that drove it. Shown in the UI so the number can be checked
+      // rather than taken on trust.
+      similarity,
+      top_matches,
       matched_skills,
       missing_skills,
       interview_questions,
