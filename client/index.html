@@ -3,8 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HireScope</title>
+
+    <!-- An inline SVG icon rather than a .ico: one file, sharp at every size,
+         and it carries the brand aubergine instead of the browser's default
+         blank page glyph. Previously this 404'd on every page load. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Browsers probe /favicon.ico regardless of the SVG above, so this exists
+         purely to stop a 404 on every page load. -->
+    <link rel="alternate icon" href="/favicon.ico" sizes="16x16" />
+
+    <!-- Space Grotesk for headings, Inter for everything else. preconnect
+         first so the font request does not wait on a fresh TLS handshake;
+         display=swap so text paints in a fallback rather than staying invisible
+         while the font downloads. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>HireScope - resume to job matching</title>
+    <meta
+      name="description"
+      content="Score your resume against a real job description, see which skills land and which are missing, and get the questions you are likely to be asked."
+    />
+    <meta name="theme-color" content="#6D2E5B" />
   </head>
+  <script>
+      // Applied before first paint: reading the saved theme after React mounts
+      // would show a white flash on every load for dark-mode users.
+      try {
+        var stored = localStorage.getItem('hirescope_theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (stored === 'dark' || (!stored && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {
+        /* private mode: fall through to light */
+      }
+    </script>
   <body>
     <!-- React mounts the whole app into this div (see src/main.jsx). -->
     <div id="root"></div>

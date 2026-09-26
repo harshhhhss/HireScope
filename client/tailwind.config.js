@@ -17,60 +17,101 @@
 export default {
   // Tailwind scans these files for class names and only ships the CSS it finds.
   content: ['./index.html', './src/**/*.{js,jsx}'],
+
+  /**
+   * Dark mode is driven by a `dark` class on <html>, not the OS setting alone.
+   * A toggle needs to be able to override the system preference, and a media
+   * query cannot be overridden from JavaScript.
+   */
+  darkMode: 'class',
+
   theme: {
     /**
-     * One radius, for every rectangular surface in the app: panels, inputs,
-     * buttons, chips. The audit found four values (rounded-lg, -md, -xl and
-     * -full) applied with no rule behind which went where.
+     * Two radii now, not one.
      *
-     * This replaces the default scale rather than extending it, so `rounded-ui`
-     * is now the only radius that exists.
+     * `ui` stays the workhorse for inputs, chips and buttons. `panel` is a
+     * larger radius for the cards and elevated sections, which at 10px read as
+     * boxes rather than surfaces. Still a closed set: no arbitrary values.
      */
     borderRadius: {
       ui: '10px',
+      panel: '18px',
+      full: '9999px',
     },
 
     /**
      * A type scale with actual steps in it.
      *
-     * The audit found 48 of ~75 size classes were `text-sm`, which is why every
-     * element used to read with the same importance. These six sizes are
-     * deliberately far enough apart to build a hierarchy from, and they are the
-     * only sizes that exist now.
+     * The previous scale was too compressed - a 44px "display" against 28px
+     * titles and 15px body meant headings never dominated. These are spread
+     * much further apart, and `hero` is deliberately oversized for the one
+     * place a headline is the entire content of the screen.
      */
     fontSize: {
+      // The landing headline. Nothing else uses this.
+      hero: ['clamp(2.75rem, 7vw, 5rem)', { lineHeight: '0.98', letterSpacing: '-0.035em', fontWeight: '700' }],
       // The score when it is the headline of a card. Proportional figures,
       // because it is read as a statement rather than scanned down a column.
-      display: ['2.75rem', { lineHeight: '1', letterSpacing: '-0.02em', fontWeight: '600' }],
+      display: ['3.5rem', { lineHeight: '1', letterSpacing: '-0.03em', fontWeight: '700' }],
       // Page titles (one per page).
-      title: ['1.75rem', { lineHeight: '1.15', letterSpacing: '-0.015em', fontWeight: '700' }],
+      title: ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.025em', fontWeight: '700' }],
       // Section headings inside a page.
-      heading: ['1.125rem', { lineHeight: '1.4', fontWeight: '600' }],
-      // Default body copy. 15px, a step up from the 14px everything used to be.
-      body: ['0.9375rem', { lineHeight: '1.6' }],
+      heading: ['1.375rem', { lineHeight: '1.3', letterSpacing: '-0.01em', fontWeight: '600' }],
+      // A step between heading and body, for card titles.
+      subheading: ['1.0625rem', { lineHeight: '1.4', fontWeight: '600' }],
+      // Default body copy.
+      body: ['1rem', { lineHeight: '1.65' }],
       // Secondary text: helper copy, counts, timestamps.
-      meta: ['0.8125rem', { lineHeight: '1.5' }],
+      meta: ['0.875rem', { lineHeight: '1.55' }],
       // Eyebrows and table column headers, used uppercase.
-      label: ['0.6875rem', { lineHeight: '1.3', letterSpacing: '0.06em', fontWeight: '600' }],
+      label: ['0.75rem', { lineHeight: '1.3', letterSpacing: '0.08em', fontWeight: '600' }],
     },
 
     extend: {
       /**
-       * One entrance animation, used on the landing page only.
+       * Two families, loaded from Google Fonts in index.html.
        *
-       * Applied through the `motion-safe:` variant, so anyone who has asked
-       * their OS for reduced motion gets the content immediately with no
-       * movement. `both` fill mode means the element is simply visible when
-       * the animation does not run.
+       * Space Grotesk is geometric with slightly odd, mechanical letterforms -
+       * it gives headings a character the default system stack has none of.
+       * Inter carries everything else, because it was drawn for UI text at
+       * small sizes and stays readable where a display face would not.
        */
+      fontFamily: {
+        display: ['"Space Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+
       keyframes: {
         fadeUp: {
           '0%': { opacity: '0', transform: 'translateY(12px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        // The hero mesh: two blobs drifting slowly out of phase, so the
+        // background is never quite static but never draws attention either.
+        drift: {
+          '0%, 100%': { transform: 'translate3d(0,0,0) scale(1)' },
+          '50%': { transform: 'translate3d(4%, -6%, 0) scale(1.12)' },
+        },
+        driftSlow: {
+          '0%, 100%': { transform: 'translate3d(0,0,0) scale(1.05)' },
+          '50%': { transform: 'translate3d(-5%, 5%, 0) scale(0.95)' },
+        },
       },
       animation: {
         fadeUp: 'fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both',
+        drift: 'drift 18s ease-in-out infinite',
+        driftSlow: 'driftSlow 24s ease-in-out infinite',
+      },
+
+      /**
+       * Layered shadows. A single box-shadow reads as a drop shadow; stacking a
+       * tight dark one under a wider soft one is what makes a surface look
+       * lifted rather than stuck on.
+       */
+      boxShadow: {
+        card: '0 1px 2px rgb(25 25 25 / 0.04), 0 4px 12px -2px rgb(25 25 25 / 0.06)',
+        lifted: '0 2px 4px rgb(25 25 25 / 0.05), 0 12px 28px -6px rgb(25 25 25 / 0.12)',
+        panel: '0 1px 3px rgb(25 25 25 / 0.05), 0 20px 44px -12px rgb(109 46 91 / 0.16)',
       },
 
       colors: {
@@ -97,14 +138,36 @@ export default {
         },
 
         /**
+         * Accent - deep indigo, the second colour in the hero gradient.
+         *
+         * At hue ~265 it sits between the aubergine and blue: far enough from
+         * primary to read as a second colour in a mesh, far enough from the
+         * status hues (0-120) to never be mistaken for one.
+         */
+        accent: {
+          50: '#F3F1FA',
+          100: '#E4E0F4',
+          200: '#C9C1E8',
+          300: '#A79BD8',
+          400: '#8271C4',
+          500: '#614EA6',
+          600: '#442E6D',
+          700: '#382658',
+          800: '#2A1D42',
+          900: '#1C132C',
+        },
+
+        /**
          * Status colours. These carry meaning, so they are never decoration:
          * every use is paired with a word, and nothing relies on colour alone.
          *
-         * Each has three roles:
+         * Each has these roles:
          *   DEFAULT - the solid colour, for fills and indicator strokes
          *   soft    - a tinted background for chips and callouts
          *   line    - the border that goes with `soft`
          *   ink     - text dark enough to read on `soft` (AA or better)
+         *   dark    - the same idea on a dark surface: light enough to read
+         *             against near-black, since `ink` would disappear there
          */
         // Note: white text on solid `good` is only 3.35:1, which fails AA for
         // body text. Use `good-ink` on `good-soft` (6.06:1) for anything with
@@ -115,24 +178,28 @@ export default {
           soft: '#E8F7E8',
           line: '#BFE6BF',
           ink: '#0A6B0A',
+          dark: '#5FD65F',
         },
         warning: {
           DEFAULT: '#fab219',
           soft: '#FEF6E4',
           line: '#F7DFAB',
           ink: '#8A5D00',
+          dark: '#F5C65A',
         },
         serious: {
           DEFAULT: '#ec835a',
           soft: '#FDF0EA',
           line: '#F6CDB8',
           ink: '#9C4620',
+          dark: '#F3A27F',
         },
         critical: {
           DEFAULT: '#d03b3b',
           soft: '#FBEAEA',
           line: '#F0C3C3',
           ink: '#9B2626',
+          dark: '#F08585',
         },
 
         /**
@@ -141,6 +208,11 @@ export default {
          * A true grey ramp, not Tailwind's `slate`, which carries a blue tint
          * that fights the aubergine primary. Named `ink` so it cannot collide
          * with Tailwind's own `neutral` scale.
+         *
+         * Dark mode does NOT simply invert this. The 950/975 steps below are
+         * near-black surfaces with a faint warm cast, because a pure inversion
+         * of a light grey ramp reads as flat charcoal with no depth between
+         * the page and the cards sitting on it.
          */
         ink: {
           50: '#FAFAFA',
@@ -153,6 +225,8 @@ export default {
           700: '#414145',
           800: '#2A2A2D',
           900: '#191919',
+          950: '#141416',
+          975: '#0E0E10',
         },
       },
     },
