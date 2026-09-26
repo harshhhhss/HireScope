@@ -1,5 +1,14 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Gauge, ListChecks, MessageSquareQuote, ScanSearch } from 'lucide-react';
+import {
+  ArrowRight,
+  Gauge,
+  ListChecks,
+  MessageSquareQuote,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
+import ScoreCardMock from '../components/ScoreCardMock';
+import useReveal from '../components/useReveal';
 
 /**
  * The front door.
@@ -7,10 +16,14 @@ import { ArrowRight, Gauge, ListChecks, MessageSquareQuote, ScanSearch } from 'l
  * Two audiences use HireScope for opposite reasons, and a single generic
  * "get started" would serve neither. A student checking their own resume gets
  * the primary card because that is who the tool is being validated with today;
- * a placement cell screening a pool gets the secondary one. Both are one click.
+ * a placement cell screening a pool gets the secondary one.
+ *
+ * The hero puts a mock of the actual output beside the headline rather than
+ * describing it: the product is a score card, so showing one says more than a
+ * paragraph can. Everything below the fold reveals on scroll.
  *
  * lucide dropped brand icons in v1, so GitHub and LinkedIn are inline SVG
- * below rather than an extra dependency for two glyphs.
+ * rather than an extra dependency for two glyphs.
  */
 
 function GithubIcon(props) {
@@ -29,128 +42,222 @@ function LinkedinIcon(props) {
   );
 }
 
-const HOW_IT_WORKS = [
+/**
+ * The bento grid. Varied spans rather than three equal columns, so the eye has
+ * somewhere to land first instead of scanning three identical boxes.
+ */
+const FEATURES = [
   {
     Icon: Gauge,
     title: 'A fit score that reads meaning',
-    body: 'Both texts are turned into sentence embeddings and compared, so a resume that describes the same work in different words still scores well.',
+    body: 'Both texts become sentence embeddings and are compared directly, so a resume describing the same work in different words still scores well. You see the raw similarity, not just the number sitting on top of it.',
+    span: 'sm:col-span-3',
+    tone: 'primary',
   },
   {
     Icon: ListChecks,
     title: 'A skills diff, not a keyword count',
-    body: 'Against a taxonomy of around 60 real tech skills, you see exactly which the posting asks for that your resume evidences, and which it does not.',
+    body: 'Around 60 real tech skills, matched against the posting. You see which ones your resume evidences and which it does not.',
+    span: 'sm:col-span-3',
+    tone: 'plain',
   },
   {
     Icon: MessageSquareQuote,
     title: 'Questions written for you',
-    body: 'Three interview questions drawn from your actual projects and the gaps in between, so you can practise the conversation before you have it.',
+    body: 'Three interview questions drawn from your own projects and the gaps between them.',
+    span: 'sm:col-span-2',
+    tone: 'plain',
+  },
+  {
+    Icon: Sparkles,
+    title: 'Practice, then apply',
+    body: 'Answer each question and get specific feedback, then draft a cover letter grounded only in what your resume actually says.',
+    span: 'sm:col-span-2',
+    tone: 'plain',
+  },
+  {
+    Icon: ShieldCheck,
+    title: 'Nothing is stored',
+    body: 'The student flow keeps no record. Your resume is read, scored, and forgotten.',
+    span: 'sm:col-span-2',
+    tone: 'plain',
   },
 ];
 
-function LandingPage() {
+function FeatureCard({ Icon, title, body, span, tone, index }) {
+  const [ref, isVisible] = useReveal();
+
+  const surface =
+    tone === 'primary'
+      ? 'border-primary-200/70 bg-gradient-to-br from-primary-50 to-white dark:border-primary-800/60 dark:from-primary-900/30 dark:to-ink-950'
+      : 'border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-950';
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-ink-50">
-      {/* Depth behind the hero. Two soft, heavily blurred blobs in the brand
-          colour rather than a flat white page. Purely decorative, so they are
-          hidden from assistive tech and never intercept a click. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden">
-        <div className="absolute -top-32 left-1/2 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-primary-200/50 blur-3xl" />
-        <div className="absolute -top-10 right-1/4 h-[260px] w-[380px] rounded-full bg-primary-100/60 blur-3xl" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-ink-50" />
+    <div
+      ref={ref}
+      style={{ transitionDelay: `${index * 70}ms` }}
+      className={`${span} rounded-panel border p-6 shadow-card transition-all duration-700 ease-out hover:-translate-y-1 hover:shadow-lifted ${surface} ${
+        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+      }`}
+    >
+      <span className="inline-flex h-10 w-10 items-center justify-center rounded-ui bg-primary-600 text-white shadow-card">
+        <Icon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <h3 className="mt-4 font-display text-subheading text-ink-900 dark:text-ink-100">{title}</h3>
+      <p className="mt-2 text-meta text-ink-500 dark:text-ink-400">{body}</p>
+    </div>
+  );
+}
+
+function LandingPage() {
+  const [gridRef, gridVisible] = useReveal();
+  const [footerRef, footerVisible] = useReveal();
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-ink-50 dark:bg-ink-975">
+      {/* ---- Gradient mesh. Three blurred blobs in primary and accent, two of
+              them drifting slowly out of phase so the background is alive
+              without ever asking to be looked at. Decorative, so hidden from
+              assistive tech and never intercepting a click. ---- */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[760px] overflow-hidden"
+      >
+        <div className="absolute -left-40 -top-56 h-[560px] w-[760px] rounded-full bg-primary-300/45 blur-3xl motion-safe:animate-drift dark:bg-primary-700/30" />
+        <div className="absolute -right-32 -top-32 h-[460px] w-[620px] rounded-full bg-accent-300/40 blur-3xl motion-safe:animate-driftSlow dark:bg-accent-700/30" />
+        <div className="absolute left-1/3 top-24 h-[340px] w-[520px] rounded-full bg-primary-100/60 blur-3xl dark:bg-accent-900/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-ink-50 dark:to-ink-975" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-4 py-16 sm:py-24">
-        {/* ---- Hero ---- */}
-        <header className="motion-safe:animate-fadeUp text-center">
-          <span className="inline-flex items-center gap-2 rounded-ui border border-primary-200 bg-white/70 px-3 py-1.5 text-label uppercase text-primary-700 backdrop-blur">
-            <ScanSearch className="h-3.5 w-3.5" aria-hidden="true" />
-            HireScope
-          </span>
+      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-24">
+        {/* ---- Hero: headline beside a mock of the real output ---- */}
+        <header className="grid items-center gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-7">
+            <span
+              style={{ animationDelay: '0ms' }}
+              className="motion-safe:animate-fadeUp inline-flex items-center gap-2 rounded-full border border-primary-200/80 bg-white/70 px-3 py-1.5 text-label uppercase text-primary-700 backdrop-blur dark:border-primary-800 dark:bg-ink-950/70 dark:text-primary-300"
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              Built for students, not recruiters
+            </span>
 
-          <h1 className="mx-auto mt-6 max-w-3xl text-title text-ink-900 sm:text-display">
-            Find out how your resume actually reads
-          </h1>
+            <h1
+              style={{ animationDelay: '90ms' }}
+              className="motion-safe:animate-fadeUp mt-6 font-display text-hero text-ink-900 dark:text-ink-50"
+            >
+              Find out how your resume actually reads
+            </h1>
 
-          <p className="mx-auto mt-4 max-w-xl text-body text-ink-600">
-            Score a resume against a real job description, see which skills land and
-            which are missing, and get the questions you are likely to be asked.
-          </p>
+            <p
+              style={{ animationDelay: '180ms' }}
+              className="motion-safe:animate-fadeUp mt-6 max-w-xl text-body text-ink-600 dark:text-ink-400"
+            >
+              Score it against a real job description, see which skills land and which
+              are missing, and get the questions you are likely to be asked.
+            </p>
+
+            {/* ---- The two paths ---- */}
+            <div className="mt-10 grid gap-4 sm:grid-cols-5">
+              <Link
+                to="/check-resume"
+                style={{ animationDelay: '270ms' }}
+                className="motion-safe:animate-fadeUp group relative flex flex-col justify-between rounded-panel border border-primary-200 bg-white p-6 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-primary-400 hover:shadow-lifted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-primary-800 dark:bg-ink-950 dark:focus-visible:ring-offset-ink-975 sm:col-span-3"
+              >
+                <div>
+                  <span className="text-label uppercase text-primary-700 dark:text-primary-300">
+                    Start here
+                  </span>
+                  <h2 className="mt-2 font-display text-subheading text-ink-900 dark:text-ink-100">
+                    Check my resume
+                  </h2>
+                  <p className="mt-2 text-meta text-ink-600 dark:text-ink-400">
+                    Get an honest score, the specific things to fix, and practice
+                    questions for the job you are targeting.
+                  </p>
+                </div>
+
+                <span className="mt-5 inline-flex w-fit items-center gap-2 rounded-ui bg-primary-600 px-4 py-2.5 text-meta font-semibold text-white shadow-card transition-colors group-hover:bg-primary-700">
+                  Check my resume
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </span>
+              </Link>
+
+              <Link
+                to="/match"
+                style={{ animationDelay: '340ms' }}
+                className="motion-safe:animate-fadeUp group flex flex-col justify-between rounded-panel border border-ink-200 bg-white p-6 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-ink-300 hover:shadow-lifted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-ink-800 dark:bg-ink-950 dark:focus-visible:ring-offset-ink-975 sm:col-span-2"
+              >
+                <div>
+                  <span className="text-label uppercase text-ink-400">For recruiters</span>
+                  <h2 className="mt-2 font-display text-subheading text-ink-900 dark:text-ink-100">
+                    Match candidates
+                  </h2>
+                  <p className="mt-2 text-meta text-ink-600 dark:text-ink-400">
+                    Paste one job description and rank your whole candidate pool
+                    against it at once.
+                  </p>
+                </div>
+
+                <span className="mt-5 inline-flex w-fit items-center gap-2 text-meta font-semibold text-ink-700 transition-colors group-hover:text-primary-700 dark:text-ink-300 dark:group-hover:text-primary-300">
+                  Match candidates
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    aria-hidden="true"
+                  />
+                </span>
+              </Link>
+            </div>
+          </div>
+
+          {/* The product, shown rather than described. */}
+          <div
+            style={{ animationDelay: '220ms' }}
+            className="motion-safe:animate-fadeUp flex justify-center lg:col-span-5 lg:justify-end"
+          >
+            <ScoreCardMock />
+          </div>
         </header>
 
-        {/* ---- The two paths ---- */}
-        <div className="mt-12 grid gap-4 sm:grid-cols-5">
-          {/* Primary: the student. Wider, filled, and first in reading order. */}
-          <Link
-            to="/check-resume"
-            style={{ animationDelay: '80ms' }}
-            className="motion-safe:animate-fadeUp group relative flex flex-col justify-between rounded-ui border border-primary-200 bg-white p-6 transition-all duration-200 hover:-translate-y-1 hover:border-primary-400 hover:shadow-lg sm:col-span-3"
+        {/* ---- How it works, as a bento grid ---- */}
+        <section className="mt-28">
+          <div
+            ref={gridRef}
+            className={`transition-all duration-700 ease-out ${
+              gridVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+            }`}
           >
-            <div>
-              <span className="text-label uppercase text-primary-700">Start here</span>
-              <h2 className="mt-2 text-heading text-ink-900">Check my resume</h2>
-              <p className="mt-2 text-body text-ink-600">
-                You are a student about to apply somewhere. Paste or upload your resume
-                and get an honest score, the specific things to fix, and practice
-                questions for the job you are targeting.
-              </p>
-            </div>
+            <h2 className="text-label uppercase text-ink-400">How it works</h2>
+            <p className="mt-2 max-w-2xl font-display text-heading text-ink-900 dark:text-ink-100">
+              Three separate signals, each one you can check for yourself.
+            </p>
+          </div>
 
-            <span className="mt-5 inline-flex w-fit items-center gap-2 rounded-ui bg-primary-600 px-4 py-2.5 text-meta font-semibold text-white transition-colors group-hover:bg-primary-700">
-              Check my resume
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </span>
-          </Link>
-
-          {/* Secondary: the placement cell. Quieter, but not hidden. */}
-          <Link
-            to="/match"
-            style={{ animationDelay: '160ms' }}
-            className="motion-safe:animate-fadeUp group flex flex-col justify-between rounded-ui border border-ink-200 bg-white p-6 transition-all duration-200 hover:-translate-y-1 hover:border-ink-300 hover:shadow-lg sm:col-span-2"
-          >
-            <div>
-              <span className="text-label uppercase text-ink-400">For recruiters</span>
-              <h2 className="mt-2 text-heading text-ink-900">Match candidates</h2>
-              <p className="mt-2 text-body text-ink-600">
-                Screening for a placement cell or a role. Paste one job description and
-                rank every candidate in your pool against it at once.
-              </p>
-            </div>
-
-            <span className="mt-5 inline-flex w-fit items-center gap-2 text-meta font-semibold text-ink-700 transition-colors group-hover:text-primary-700">
-              Match candidates
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-            </span>
-          </Link>
-        </div>
-
-        {/* ---- How it works ---- */}
-        <section className="mt-20">
-          <h2 className="text-label uppercase text-ink-400">How it works</h2>
-
-          <div className="mt-5 grid gap-8 sm:grid-cols-3">
-            {HOW_IT_WORKS.map(({ Icon, title, body }) => (
-              <div key={title}>
-                <span className="flex h-9 w-9 items-center justify-center rounded-ui bg-primary-50 text-primary-700">
-                  <Icon className="h-4.5 w-4.5" aria-hidden="true" />
-                </span>
-                <h3 className="mt-3 text-body font-semibold text-ink-900">{title}</h3>
-                <p className="mt-1.5 text-meta text-ink-500">{body}</p>
-              </div>
+          <div className="mt-8 grid gap-4 sm:grid-cols-6">
+            {FEATURES.map((feature, index) => (
+              <FeatureCard key={feature.title} {...feature} index={index} />
             ))}
           </div>
         </section>
 
         {/* ---- Why, and who ---- */}
-        <footer className="mt-20 border-t border-ink-200 pt-8">
-          <p className="max-w-xl text-body text-ink-600">
+        <footer
+          ref={footerRef}
+          className={`mt-24 border-t border-ink-200 pt-10 transition-all duration-700 ease-out dark:border-ink-800 ${
+            footerVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+          }`}
+        >
+          <p className="max-w-xl text-body text-ink-600 dark:text-ink-400">
             I kept sending out resumes with no idea whether they were any good, and so
             did everyone I studied with. This is the tool I wanted then.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-4">
+          <div className="mt-6 flex flex-wrap items-center gap-4">
             <span className="text-meta text-ink-500">Built by Harsh Singh</span>
 
-            <span aria-hidden="true" className="text-ink-300">
+            <span aria-hidden="true" className="text-ink-300 dark:text-ink-700">
               &middot;
             </span>
 
@@ -158,7 +265,7 @@ function LandingPage() {
               href="https://github.com/harshhhhss"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 text-meta text-ink-500 transition-colors hover:text-primary-700"
+              className="flex items-center gap-1.5 rounded-ui text-meta text-ink-500 transition-colors hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:hover:text-primary-300 dark:focus-visible:ring-offset-ink-975"
             >
               <GithubIcon className="h-4 w-4" />
               GitHub
@@ -168,7 +275,7 @@ function LandingPage() {
               href="https://linkedin.com/in/harsh-singh-14a730321"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 text-meta text-ink-500 transition-colors hover:text-primary-700"
+              className="flex items-center gap-1.5 rounded-ui text-meta text-ink-500 transition-colors hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:hover:text-primary-300 dark:focus-visible:ring-offset-ink-975"
             >
               <LinkedinIcon className="h-4 w-4" />
               LinkedIn
