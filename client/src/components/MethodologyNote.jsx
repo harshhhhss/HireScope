@@ -14,11 +14,11 @@ import { Info } from 'lucide-react';
  */
 function MethodologyNote() {
   return (
-    <div className="flex gap-3 rounded-ui border border-ink-200 bg-ink-50 p-4">
+    <div className="flex gap-3 rounded-ui border border-ink-200 dark:border-ink-800 bg-ink-50 dark:bg-ink-900/60 p-4">
       <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden="true" />
 
-      <div className="text-meta text-ink-600">
-        <p className="font-medium text-ink-700">How this works</p>
+      <div className="text-meta text-ink-600 dark:text-ink-400">
+        <p className="font-medium text-ink-700 dark:text-ink-300">How this works</p>
         <p className="mt-1">
           Your resume and the job description are each turned into a list of numbers
           that represents their meaning, and the score is how close those two lists

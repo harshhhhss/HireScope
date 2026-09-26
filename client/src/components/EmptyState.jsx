@@ -8,17 +8,17 @@
  */
 function EmptyState({ icon: Icon, title, description, children }) {
   return (
-    <div className="rounded-ui border border-dashed border-ink-300 bg-white px-6 py-12 text-center">
+    <div className="rounded-panel border border-dashed border-ink-300 dark:border-ink-700 bg-white dark:bg-ink-950 px-6 py-12 text-center">
       {Icon && (
-        <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-ui bg-ink-100">
+        <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-ui bg-ink-100 dark:bg-ink-800">
           <Icon className="h-5 w-5 text-ink-400" aria-hidden="true" />
         </div>
       )}
 
-      <p className="text-heading text-ink-900">{title}</p>
+      <p className="text-heading font-display text-ink-900 dark:text-ink-100">{title}</p>
 
       {description && (
-        <p className="mx-auto mt-1.5 max-w-sm text-body text-ink-500">{description}</p>
+        <p className="mx-auto mt-1.5 max-w-sm text-body text-ink-500 dark:text-ink-400">{description}</p>
       )}
 
       {children && <div className="mt-5">{children}</div>}

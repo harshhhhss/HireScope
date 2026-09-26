@@ -62,8 +62,8 @@ function CandidatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-title text-ink-900">Candidates</h1>
-        <p className="mt-2 text-body text-ink-500">
+        <h1 className="text-title font-display text-ink-900 dark:text-ink-100">Candidates</h1>
+        <p className="mt-2 text-body text-ink-500 dark:text-ink-400">
           Paste resumes here first, then run a match from the Match tab.
         </p>
       </div>
@@ -73,8 +73,8 @@ function CandidatesPage() {
 
       <CandidateForm onCreate={handleCreate} isSaving={isSaving} />
 
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-heading text-ink-900">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+        <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">
           In the database ({candidates.length})
         </h2>
         <span className="text-meta text-ink-400">

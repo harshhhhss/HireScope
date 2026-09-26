@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
+import Button from './Button';
+import { textareaClass } from './formStyles';
 import { uploadResumeFile } from '../services/api';
 
 /**
@@ -43,15 +45,14 @@ function ResumeInput({ value, onChange, disabled }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => fileInputRef.current?.click()}
           disabled={busy}
-          className="inline-flex items-center gap-2 rounded-ui border border-ink-300 bg-white px-4 py-2 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Upload className="h-4 w-4" aria-hidden="true" />
           {isUploading ? 'Reading your file...' : 'Upload PDF or DOCX'}
-        </button>
+        </Button>
 
         <span className="text-meta text-ink-400">or paste it below</span>
 
@@ -65,12 +66,12 @@ function ResumeInput({ value, onChange, disabled }) {
       </div>
 
       {uploadedName && !uploadError && (
-        <p className="mt-2 text-meta text-good-ink">
+        <p className="mt-2 text-meta text-good-ink dark:text-good-dark">
           Loaded {uploadedName} - check the text below looks right.
         </p>
       )}
 
-      {uploadError && <p className="mt-2 text-meta text-critical-ink">{uploadError}</p>}
+      {uploadError && <p className="mt-2 text-meta text-critical-ink dark:text-critical-dark">{uploadError}</p>}
 
       <textarea
         value={value}
@@ -78,7 +79,7 @@ function ResumeInput({ value, onChange, disabled }) {
         disabled={busy}
         rows={12}
         placeholder="Paste your resume here, or upload a file above..."
-        className="mt-3 w-full rounded-ui border border-ink-300 p-3 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
+        className={`mt-3 ${textareaClass}`}
       />
 
       <p className="mt-1.5 text-meta text-ink-400">

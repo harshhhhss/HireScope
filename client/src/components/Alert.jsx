@@ -1,4 +1,5 @@
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { focusRing } from './formStyles';
 
 /**
  * A single status message.
@@ -12,15 +13,15 @@ function Alert({ type = 'info', message, onDismiss }) {
 
   const styles = {
     error: {
-      surface: 'bg-critical-soft text-critical-ink border-critical-line',
+      surface: 'bg-critical-soft dark:bg-critical-dark/10 text-critical-ink dark:text-critical-dark border-critical-line dark:border-critical-dark/30',
       Icon: AlertCircle,
     },
     success: {
-      surface: 'bg-good-soft text-good-ink border-good-line',
+      surface: 'bg-good-soft dark:bg-good-dark/10 text-good-ink dark:text-good-dark border-good-line dark:border-good-dark/30',
       Icon: CheckCircle2,
     },
     info: {
-      surface: 'bg-primary-50 text-primary-700 border-primary-200',
+      surface: 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 border-primary-200',
       Icon: Info,
     },
   };
@@ -36,7 +37,7 @@ function Alert({ type = 'info', message, onDismiss }) {
         <button
           type="button"
           onClick={onDismiss}
-          className="shrink-0 opacity-60 transition-opacity hover:opacity-100"
+          className={`shrink-0 rounded-ui opacity-60 transition-opacity duration-150 hover:opacity-100 ${focusRing}`}
           aria-label="Dismiss message"
         >
           <X className="h-4 w-4" aria-hidden="true" />

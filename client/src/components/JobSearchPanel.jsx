@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, ExternalLink, Link2, Search } from 'lucide-react';
+import { focusRing } from './formStyles';
 import {
   getCompanyJobDescription,
   getJobCompanies,
@@ -130,14 +131,14 @@ function JobSearchPanel({ onSelectJob, disabled }) {
   }
 
   return (
-    <div className="rounded-ui border border-ink-200">
+    <div className="rounded-ui border border-ink-200 dark:border-ink-800">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-ink-50"
+        className={`flex w-full items-center justify-between gap-3 rounded-ui px-4 py-3 text-left transition-colors duration-150 hover:bg-ink-50 ${focusRing}`}
         aria-expanded={isOpen}
       >
-        <span className="flex items-center gap-2 text-body font-medium text-ink-900">
+        <span className="flex items-center gap-2 text-body font-medium text-ink-900 dark:text-ink-100">
           <Search className="h-4 w-4 text-ink-400" aria-hidden="true" />
           Browse real openings
         </span>
@@ -149,7 +150,7 @@ function JobSearchPanel({ onSelectJob, disabled }) {
       </button>
 
       {isOpen && (
-        <div className="border-t border-ink-200 p-4">
+        <div className="border-t border-ink-200 dark:border-ink-800 p-4">
           <form onSubmit={handleSearch} className="flex flex-col gap-2">
             <label className="flex flex-col gap-1">
               <span className="text-label uppercase text-ink-400">Where to look</span>
@@ -162,7 +163,7 @@ function JobSearchPanel({ onSelectJob, disabled }) {
                   setError('');
                 }}
                 disabled={disabled || isSearching}
-                className="rounded-ui border border-ink-300 px-3 py-2 text-body text-ink-900 transition-colors focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
+                className="rounded-ui border border-ink-300 dark:border-ink-700 px-3 py-2 text-body text-ink-900 dark:text-ink-100 transition-colors focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
               >
                 {!adzunaUnavailable && <option value="adzuna">All jobs (broad search)</option>}
                 {companies.map((company) => (
@@ -180,7 +181,7 @@ function JobSearchPanel({ onSelectJob, disabled }) {
                 onChange={(event) => setKeywords(event.target.value)}
                 disabled={disabled || isSearching}
                 placeholder="backend developer"
-                className="flex-1 rounded-ui border border-ink-300 px-3 py-2 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
+                className="flex-1 rounded-ui border border-ink-300 dark:border-ink-700 px-3 py-2 text-body text-ink-900 dark:text-ink-100 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
               />
               <input
                 type="text"
@@ -188,7 +189,7 @@ function JobSearchPanel({ onSelectJob, disabled }) {
                 onChange={(event) => setLocation(event.target.value)}
                 disabled={disabled || isSearching}
                 placeholder={searchingAdzuna ? 'Chennai (optional)' : 'Location (optional)'}
-                className="rounded-ui border border-ink-300 px-3 py-2 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50 sm:w-48"
+                className="rounded-ui border border-ink-300 dark:border-ink-700 px-3 py-2 text-body text-ink-900 dark:text-ink-100 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50 sm:w-48"
               />
               <button
                 type="submit"
@@ -207,27 +208,41 @@ function JobSearchPanel({ onSelectJob, disabled }) {
             </p>
           )}
 
-          {error && <p className="mt-3 text-meta text-critical-ink">{error}</p>}
+          {error && <p className="mt-3 text-meta text-critical-ink dark:text-critical-dark">{error}</p>}
 
-          {hasSearched && results.length === 0 && !error && (
-            <p className="mt-3 text-meta text-ink-500">
+          {isSearching && (
+            <ul className="mt-3 divide-y divide-ink-200 dark:divide-ink-800" aria-label="Searching">
+              {[0, 1, 2].map((row) => (
+                <li key={row} className="flex animate-pulse items-start justify-between gap-3 py-3">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3.5 w-48 rounded-ui bg-ink-200 dark:bg-ink-800" />
+                    <div className="h-2.5 w-32 rounded-ui bg-ink-100 dark:bg-ink-800" />
+                  </div>
+                  <div className="h-7 w-24 rounded-ui bg-ink-100 dark:bg-ink-800" />
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {!isSearching && hasSearched && results.length === 0 && !error && (
+            <p className="mt-3 text-meta text-ink-500 dark:text-ink-400">
               No openings matched that search. Try broader keywords.
             </p>
           )}
 
-          {results.length > 0 && (
-            <ul className="mt-3 divide-y divide-ink-200">
+          {!isSearching && results.length > 0 && (
+            <ul className="mt-3 divide-y divide-ink-200 dark:divide-ink-800">
               {results.map((job) => (
                 <li key={job.id} className="py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-body font-medium text-ink-900">{job.title}</p>
-                      <p className="text-meta text-ink-500">
+                      <p className="text-body font-medium text-ink-900 dark:text-ink-100">{job.title}</p>
+                      <p className="text-meta text-ink-500 dark:text-ink-400">
                         {job.company}
                         {job.location ? ` - ${job.location}` : ''}
                       </p>
                       {job.snippet && (
-                        <p className="mt-1 text-meta text-ink-500">{job.snippet}</p>
+                        <p className="mt-1 text-meta text-ink-500 dark:text-ink-400">{job.snippet}</p>
                       )}
                     </div>
 
@@ -236,7 +251,7 @@ function JobSearchPanel({ onSelectJob, disabled }) {
                         type="button"
                         onClick={() => handleUseJob(job)}
                         disabled={disabled || loadingJobId === job.id}
-                        className="whitespace-nowrap rounded-ui border border-ink-300 px-3 py-1.5 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="whitespace-nowrap rounded-ui border border-ink-300 dark:border-ink-700 px-3 py-1.5 text-meta font-medium text-ink-700 dark:text-ink-300 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {loadingJobId === job.id ? 'Loading...' : 'Use this job'}
                       </button>
@@ -259,13 +274,13 @@ function JobSearchPanel({ onSelectJob, disabled }) {
           )}
 
           {/* ---- Paste a link, for anything the sources above miss ---- */}
-          <form onSubmit={handleUrlFetch} className="mt-5 border-t border-ink-200 pt-4">
+          <form onSubmit={handleUrlFetch} className="mt-5 border-t border-ink-200 dark:border-ink-800 pt-4">
             <label className="flex flex-col gap-1">
               <span className="flex items-center gap-1.5 text-label uppercase text-ink-400">
                 <Link2 className="h-3 w-3" aria-hidden="true" />
                 Or paste a job link
               </span>
-              <span className="text-meta text-ink-500">
+              <span className="text-meta text-ink-500 dark:text-ink-400">
                 Works for pages that include their text in the HTML, such as Google
                 Careers. Sites that build the page in your browser cannot be read.
               </span>
@@ -278,18 +293,18 @@ function JobSearchPanel({ onSelectJob, disabled }) {
                 onChange={(event) => setJobUrl(event.target.value)}
                 disabled={disabled || isFetchingUrl}
                 placeholder="https://careers.example.com/jobs/12345"
-                className="flex-1 rounded-ui border border-ink-300 px-3 py-2 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
+                className="flex-1 rounded-ui border border-ink-300 dark:border-ink-700 px-3 py-2 text-body text-ink-900 dark:text-ink-100 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
               />
               <button
                 type="submit"
                 disabled={disabled || isFetchingUrl || !jobUrl.trim()}
-                className="rounded-ui border border-ink-300 px-4 py-2 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-ui border border-ink-300 dark:border-ink-700 px-4 py-2 text-meta font-medium text-ink-700 dark:text-ink-300 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isFetchingUrl ? 'Reading...' : 'Fetch'}
               </button>
             </div>
 
-            {urlError && <p className="mt-2 text-meta text-critical-ink">{urlError}</p>}
+            {urlError && <p className="mt-2 text-meta text-critical-ink dark:text-critical-dark">{urlError}</p>}
           </form>
         </div>
       )}

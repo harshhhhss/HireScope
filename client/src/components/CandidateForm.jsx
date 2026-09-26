@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Button from './Button';
+import { inputClass, textareaClass } from './formStyles';
 
 /** Blank form state, reused on mount and after a successful save. */
 const EMPTY_FORM = { name: '', email: '', resume_text: '' };
@@ -36,16 +38,13 @@ function CandidateForm({ onCreate, isSaving }) {
     if (saved) setForm(EMPTY_FORM);
   }
 
-  const inputClass =
-    'mt-1.5 w-full rounded-ui border border-ink-300 p-2.5 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50';
-
   return (
-    <form onSubmit={handleSubmit} className="rounded-ui border border-ink-200 bg-white p-6">
-      <h2 className="text-heading text-ink-900">Add a candidate</h2>
+    <form onSubmit={handleSubmit} className="rounded-panel border border-ink-200 bg-white dark:bg-ink-950 dark:border-ink-800 p-7 shadow-card">
+      <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">Add a candidate</h2>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="name" className="block text-meta font-medium text-ink-700">
+          <label htmlFor="name" className="block text-meta font-medium text-ink-700 dark:text-ink-300">
             Name
           </label>
           <input
@@ -56,12 +55,12 @@ function CandidateForm({ onCreate, isSaving }) {
             onChange={handleChange}
             disabled={isSaving}
             placeholder="Harsh Singh"
-            className={inputClass}
+            className={`mt-1.5 ${inputClass}`}
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-meta font-medium text-ink-700">
+          <label htmlFor="email" className="block text-meta font-medium text-ink-700 dark:text-ink-300">
             Email
           </label>
           <input
@@ -72,13 +71,13 @@ function CandidateForm({ onCreate, isSaving }) {
             onChange={handleChange}
             disabled={isSaving}
             placeholder="harsh@example.com"
-            className={inputClass}
+            className={`mt-1.5 ${inputClass}`}
           />
         </div>
       </div>
 
       <div className="mt-4">
-        <label htmlFor="resume_text" className="block text-meta font-medium text-ink-700">
+        <label htmlFor="resume_text" className="block text-meta font-medium text-ink-700 dark:text-ink-300">
           Resume text
         </label>
         <textarea
@@ -89,18 +88,14 @@ function CandidateForm({ onCreate, isSaving }) {
           disabled={isSaving}
           rows={8}
           placeholder="Paste the full resume here..."
-          className={inputClass}
+          className={`mt-1.5 ${inputClass}`}
         />
       </div>
 
       <div className="mt-4 flex justify-end">
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="rounded-ui bg-primary-600 px-5 py-2.5 text-meta font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-ink-300"
-        >
+        <Button type="submit" size="lg" disabled={!canSubmit}>
           {isSaving ? 'Saving...' : 'Add candidate'}
-        </button>
+        </Button>
       </div>
     </form>
   );

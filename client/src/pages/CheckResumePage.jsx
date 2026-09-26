@@ -13,6 +13,8 @@ import PracticeQuestion from '../components/PracticeQuestion';
 import CoverLetterDraft from '../components/CoverLetterDraft';
 import ScoreBreakdown from '../components/ScoreBreakdown';
 import MethodologyNote from '../components/MethodologyNote';
+import Button from '../components/Button';
+import { textareaClass } from '../components/formStyles';
 import { appendScore, clearHistory, readHistory } from '../services/resumeHistory';
 
 /**
@@ -93,16 +95,16 @@ function CheckResumePage() {
     <div className="mx-auto max-w-3xl space-y-8">
       {/* ---- Header ---- */}
       <header>
-        <h1 className="text-title text-ink-900">How good is your resume?</h1>
-        <p className="mt-2 text-body text-ink-500">
+        <h1 className="text-title font-display text-ink-900 dark:text-ink-100">How good is your resume?</h1>
+        <p className="mt-2 text-body text-ink-500 dark:text-ink-400">
           Paste it in or upload a file. You will get an honest score, what is working,
           and exactly what to fix - before you send it anywhere.
         </p>
       </header>
 
       {/* ---- Step 1: the resume ---- */}
-      <section className="rounded-ui border border-ink-200 bg-white p-6">
-        <h2 className="text-heading text-ink-900">Your resume</h2>
+      <section className="rounded-panel border border-ink-200 bg-white dark:bg-ink-950 dark:border-ink-800 p-7 shadow-card">
+        <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">Your resume</h2>
 
         <div className="mt-4">
           <ResumeInput value={resumeText} onChange={setResumeText} disabled={isScoring} />
@@ -110,17 +112,17 @@ function CheckResumePage() {
 
         <Alert type="error" message={scoreError} onDismiss={() => setScoreError('')} />
 
-        <button
-          type="button"
+        <Button
+          size="lg"
           onClick={handleScore}
           disabled={!canScore}
-          className="mt-5 w-full rounded-ui bg-primary-600 px-5 py-2.5 text-meta font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
+          className="mt-5 w-full sm:w-auto"
         >
           {isScoring ? 'Reading your resume...' : 'Check my resume'}
-        </button>
+        </Button>
 
         {isScoring && (
-          <p className="mt-2 text-meta text-ink-500">
+          <p className="mt-2 text-meta text-ink-500 dark:text-ink-400">
             This usually takes a few seconds.
           </p>
         )}
@@ -137,13 +139,13 @@ function CheckResumePage() {
 
       {/* ---- Step 1 result ---- */}
       {quality && (
-        <section className="space-y-7 rounded-ui border border-ink-200 bg-white p-6">
+        <section className="space-y-7 rounded-panel border border-ink-200 bg-white dark:bg-ink-950 dark:border-ink-800 p-7 shadow-card motion-safe:animate-fadeUp">
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-8">
             <ScoreRing score={quality.overall_score} />
 
             <div className="flex-1">
-              <h2 className="text-heading text-ink-900">Here is what I found</h2>
-              <p className="mt-1 text-body text-ink-500">
+              <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">Here is what I found</h2>
+              <p className="mt-1 text-body text-ink-500 dark:text-ink-400">
                 Scored on concrete impact, evidence of real projects, and how quickly
                 someone can scan it.
               </p>
@@ -153,9 +155,9 @@ function CheckResumePage() {
           {quality.strengths.length > 0 && (
             <div>
               <h3 className="text-label uppercase text-ink-400">What is working</h3>
-              <ul className="mt-2 divide-y divide-ink-200">
+              <ul className="mt-2 divide-y divide-ink-200 dark:divide-ink-800">
                 {quality.strengths.map((item, index) => (
-                  <li key={index} className="flex gap-3 py-3 text-body text-ink-700">
+                  <li key={index} className="flex gap-3 py-3 text-body text-ink-700 dark:text-ink-300">
                     <Check className="mt-1 h-4 w-4 shrink-0 text-good" aria-hidden="true" />
                     <span>{item}</span>
                   </li>
@@ -169,9 +171,9 @@ function CheckResumePage() {
           {quality.improvements.length > 0 && (
             <div>
               <h3 className="text-label uppercase text-ink-400">What to fix next</h3>
-              <ol className="mt-2 divide-y divide-ink-200">
+              <ol className="mt-2 divide-y divide-ink-200 dark:divide-ink-800">
                 {quality.improvements.map((item, index) => (
-                  <li key={index} className="flex gap-3 py-3 text-body text-ink-700">
+                  <li key={index} className="flex gap-3 py-3 text-body text-ink-700 dark:text-ink-300">
                     <span className="text-meta font-semibold tabular-nums text-ink-400">
                       {index + 1}
                     </span>
@@ -186,9 +188,9 @@ function CheckResumePage() {
 
       {/* ---- Step 2: optional, and only once there is a score ---- */}
       {quality && (
-        <section className="rounded-ui border border-ink-200 bg-white p-6">
-          <h2 className="text-heading text-ink-900">Applying somewhere specific?</h2>
-          <p className="mt-1 text-body text-ink-500">
+        <section className="rounded-panel border border-ink-200 bg-white dark:bg-ink-950 dark:border-ink-800 p-7 shadow-card">
+          <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">Applying somewhere specific?</h2>
+          <p className="mt-1 text-body text-ink-500 dark:text-ink-400">
             Optional. Paste the job description and I will show how your resume lines up,
             which skills are missing, and what they are likely to ask you.
           </p>
@@ -203,22 +205,22 @@ function CheckResumePage() {
             disabled={isMatching}
             rows={7}
             placeholder="Paste the job description here..."
-            className="mt-4 w-full rounded-ui border border-ink-300 p-3 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
+            className={`mt-4 ${textareaClass}`}
           />
 
           <Alert type="error" message={matchError} onDismiss={() => setMatchError('')} />
 
-          <button
-            type="button"
+          <Button
+            size="lg"
             onClick={handleMatch}
             disabled={!canMatch}
-            className="mt-5 w-full rounded-ui bg-primary-600 px-5 py-2.5 text-meta font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-ink-300 sm:w-auto"
+            className="mt-5 w-full sm:w-auto"
           >
             {isMatching ? 'Comparing...' : 'Compare with this job'}
-          </button>
+          </Button>
 
           {isMatching && (
-            <p className="mt-2 text-meta text-ink-500">
+            <p className="mt-2 text-meta text-ink-500 dark:text-ink-400">
               Scoring the match and writing practice questions - a few seconds.
             </p>
           )}
@@ -227,11 +229,11 @@ function CheckResumePage() {
 
       {/* ---- Step 2 result ---- */}
       {fit && (
-        <section className="space-y-7 rounded-ui border border-ink-200 bg-white p-6">
+        <section className="space-y-7 rounded-panel border border-ink-200 bg-white dark:bg-ink-950 dark:border-ink-800 p-7 shadow-card motion-safe:animate-fadeUp">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h2 className="text-heading text-ink-900">How you match this job</h2>
-              <p className="mt-1 text-body text-ink-500">
+              <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">How you match this job</h2>
+              <p className="mt-1 text-body text-ink-500 dark:text-ink-400">
                 Based on how closely your resume reads like the posting.
               </p>
             </div>
@@ -282,7 +284,7 @@ function CheckResumePage() {
               <h3 className="text-label uppercase text-ink-400">
                 Practise these before you apply
               </h3>
-              <ol className="mt-2 divide-y divide-ink-200">
+              <ol className="mt-2 divide-y divide-ink-200 dark:divide-ink-800">
                 {fit.interview_questions.map((question, index) => (
                   <PracticeQuestion
                     key={index}

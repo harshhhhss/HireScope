@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Check, Copy, FileText } from 'lucide-react';
+import Button from './Button';
+import { readOnlyClass } from './formStyles';
 import { getCoverLetter } from '../services/api';
 
 /**
@@ -45,27 +47,22 @@ function CoverLetterDraft({ resumeText, jobDescription, matchedSkills }) {
   }
 
   return (
-    <div className="border-t border-ink-200 pt-5">
+    <div className="border-t border-ink-200 dark:border-ink-800 pt-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-label uppercase text-ink-400">Cover letter</h3>
-          <p className="mt-1 text-meta text-ink-500">
+          <p className="mt-1 text-meta text-ink-500 dark:text-ink-400">
             Drafted only from what your resume actually says - no invented experience.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleDraft}
-          disabled={isDrafting}
-          className="inline-flex items-center gap-2 rounded-ui border border-ink-300 px-3 py-1.5 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button variant="secondary" size="sm" onClick={handleDraft} disabled={isDrafting}>
           <FileText className="h-4 w-4" aria-hidden="true" />
           {isDrafting ? 'Drafting...' : letter ? 'Draft again' : 'Draft a cover letter'}
-        </button>
+        </Button>
       </div>
 
-      {error && <p className="mt-3 text-meta text-critical-ink">{error}</p>}
+      {error && <p className="mt-3 text-meta text-critical-ink dark:text-critical-dark">{error}</p>}
 
       {letter && (
         <div className="mt-3">
@@ -73,21 +70,17 @@ function CoverLetterDraft({ resumeText, jobDescription, matchedSkills }) {
             value={letter}
             readOnly
             rows={14}
-            className="w-full rounded-ui border border-ink-300 bg-ink-50 p-3 text-body text-ink-900 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600"
+            className={readOnlyClass}
           />
 
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="mt-2 inline-flex items-center gap-2 rounded-ui border border-ink-300 px-3 py-1.5 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
-          >
+          <Button variant="secondary" size="sm" onClick={handleCopy} className="mt-2">
             {copied ? (
               <Check className="h-4 w-4 text-good" aria-hidden="true" />
             ) : (
               <Copy className="h-4 w-4" aria-hidden="true" />
             )}
             {copied ? 'Copied' : 'Copy'}
-          </button>
+          </Button>
         </div>
       )}
     </div>

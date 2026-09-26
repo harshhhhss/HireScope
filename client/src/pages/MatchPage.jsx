@@ -5,6 +5,7 @@ import ResultsTable from '../components/ResultsTable';
 import CandidateDetailModal from '../components/CandidateDetailModal';
 import Alert from '../components/Alert';
 import EmptyState from '../components/EmptyState';
+import TableSkeleton from '../components/TableSkeleton';
 import { Target } from 'lucide-react';
 
 /**
@@ -64,8 +65,8 @@ function MatchPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-title text-ink-900">Match candidates</h1>
-        <p className="mt-2 text-body text-ink-500">
+        <h1 className="text-title font-display text-ink-900 dark:text-ink-100">Match candidates</h1>
+        <p className="mt-2 text-body text-ink-500 dark:text-ink-400">
           Scores come from sentence embeddings; the skills lists come from a
           keyword taxonomy; the questions come from Gemini.
         </p>
@@ -102,26 +103,33 @@ function MatchPage() {
       )}
 
       {hasMatched && (
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-heading text-ink-900">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+          <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">
             Results ({results.length})
           </h2>
           <span className="text-meta text-ink-400">Ranked by fit score, best first</span>
         </div>
       )}
 
-      {!hasMatched && results.length === 0 ? (
+      {/* Matching runs an ML call and a Gemini call per candidate, so this is
+          the longest wait in the app. A skeleton says work is happening; the
+          empty state would wrongly say nothing has been asked for yet. */}
+      {isMatching ? (
+        <TableSkeleton rows={Math.min(candidateCount || 3, 5)} />
+      ) : !hasMatched && results.length === 0 ? (
         <EmptyState
           icon={Target}
           title="No results yet"
           description="Paste a job description above and run a match. Every candidate in the database will be scored against it and ranked here."
         />
       ) : (
-        <ResultsTable
-          results={results}
-          onSelectCandidate={setSelectedCandidate}
-          emptyMessage="No candidates were scored."
-        />
+        <div className="motion-safe:animate-fadeUp">
+          <ResultsTable
+            results={results}
+            onSelectCandidate={setSelectedCandidate}
+            emptyMessage="No candidates were scored."
+          />
+        </div>
       )}
 
       <CandidateDetailModal

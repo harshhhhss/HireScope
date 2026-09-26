@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Button from './Button';
+import { textareaClass } from './formStyles';
 import { getInterviewFeedback } from '../services/api';
 
 /**
@@ -43,9 +45,9 @@ function PracticeQuestion({ index, question, resumeText, missingSkills }) {
   // The verdict is a judgement about the answer, so it gets a status colour -
   // always next to the word itself, never colour alone.
   const verdictStyles = {
-    strong: 'bg-good-soft text-good-ink border-good-line',
-    'needs work': 'bg-warning-soft text-warning-ink border-warning-line',
-    'off target': 'bg-serious-soft text-serious-ink border-serious-line',
+    strong: 'bg-good-soft dark:bg-good-dark/10 text-good-ink dark:text-good-dark border-good-line dark:border-good-dark/30',
+    'needs work': 'bg-warning-soft dark:bg-warning-dark/10 text-warning-ink dark:text-warning-dark border-warning-line dark:border-warning-dark/30',
+    'off target': 'bg-serious-soft dark:bg-serious-dark/10 text-serious-ink dark:text-serious-dark border-serious-line dark:border-serious-dark/30',
   };
 
   return (
@@ -53,7 +55,7 @@ function PracticeQuestion({ index, question, resumeText, missingSkills }) {
       <div className="flex gap-3">
         <span className="text-meta font-semibold tabular-nums text-ink-400">{index + 1}</span>
         <div className="min-w-0 flex-1">
-          <p className="text-body text-ink-700">{question}</p>
+          <p className="text-body text-ink-700 dark:text-ink-300">{question}</p>
 
           <textarea
             value={answer}
@@ -61,28 +63,23 @@ function PracticeQuestion({ index, question, resumeText, missingSkills }) {
             disabled={isEvaluating}
             rows={4}
             placeholder="Type how you would answer this out loud..."
-            className="mt-3 w-full rounded-ui border border-ink-300 p-3 text-body text-ink-900 transition-colors placeholder:text-ink-400 focus:border-primary-600 focus:outline-none focus:ring-1 focus:ring-primary-600 disabled:bg-ink-50"
+            className={`mt-3 ${textareaClass}`}
           />
 
           <div className="mt-2 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleGetFeedback}
-              disabled={!canSubmit}
-              className="rounded-ui border border-ink-300 px-3 py-1.5 text-meta font-medium text-ink-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            <Button variant="secondary" size="sm" onClick={handleGetFeedback} disabled={!canSubmit}>
               {isEvaluating ? 'Reading your answer...' : 'Get feedback'}
-            </button>
+            </Button>
 
             {isEvaluating && (
               <span className="text-meta text-ink-400">A few seconds.</span>
             )}
           </div>
 
-          {error && <p className="mt-2 text-meta text-critical-ink">{error}</p>}
+          {error && <p className="mt-2 text-meta text-critical-ink dark:text-critical-dark">{error}</p>}
 
           {feedback && (
-            <div className="mt-3 rounded-ui border border-ink-200 bg-ink-50 p-4">
+            <div className="mt-3 rounded-ui border border-ink-200 dark:border-ink-800 bg-ink-50 dark:bg-ink-900/60 p-4">
               <span
                 className={`inline-block rounded-ui border px-2.5 py-1 text-label uppercase ${
                   verdictStyles[feedback.verdict] ?? verdictStyles['needs work']
@@ -92,7 +89,7 @@ function PracticeQuestion({ index, question, resumeText, missingSkills }) {
               </span>
 
               {feedback.summary && (
-                <p className="mt-2 text-body text-ink-700">{feedback.summary}</p>
+                <p className="mt-2 text-body text-ink-700 dark:text-ink-300">{feedback.summary}</p>
               )}
 
               {feedback.suggestions.length > 0 && (
@@ -100,7 +97,7 @@ function PracticeQuestion({ index, question, resumeText, missingSkills }) {
                   {feedback.suggestions.map((suggestion, suggestionIndex) => (
                     <li
                       key={suggestionIndex}
-                      className="flex gap-2 text-meta text-ink-600"
+                      className="flex gap-2 text-meta text-ink-600 dark:text-ink-400"
                     >
                       <span aria-hidden="true" className="text-ink-400">
                         -

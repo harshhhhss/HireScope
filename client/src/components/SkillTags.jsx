@@ -18,8 +18,8 @@ function SkillTags({ skills, variant = 'matched', emptyText = 'None' }) {
   }
 
   const styles = {
-    matched: 'bg-good-soft text-good-ink border-good-line',
-    missing: 'bg-transparent text-ink-600 border-ink-300',
+    matched: 'bg-good-soft dark:bg-good-dark/10 text-good-ink dark:text-good-dark border-good-line dark:border-good-dark/30',
+    missing: 'bg-transparent text-ink-600 dark:text-ink-400 border-ink-300 dark:border-ink-700',
   };
 
   return (

@@ -1,5 +1,6 @@
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { describeChange } from '../services/resumeHistory';
+import { focusRing } from './formStyles';
 import { getScoreBand } from './FitScoreBadge';
 
 /**
@@ -15,10 +16,10 @@ function ProgressTrend({ history, onClear }) {
   const change = describeChange(history);
 
   const trend = {
-    up: { Icon: TrendingUp, className: 'text-good-ink' },
-    down: { Icon: TrendingDown, className: 'text-warning-ink' },
-    same: { Icon: Minus, className: 'text-ink-500' },
-    first: { Icon: Minus, className: 'text-ink-500' },
+    up: { Icon: TrendingUp, className: 'text-good-ink dark:text-good-dark' },
+    down: { Icon: TrendingDown, className: 'text-warning-ink dark:text-warning-dark' },
+    same: { Icon: Minus, className: 'text-ink-500 dark:text-ink-400' },
+    first: { Icon: Minus, className: 'text-ink-500 dark:text-ink-400' },
   }[change.direction];
 
   const { Icon } = trend;
@@ -30,14 +31,14 @@ function ProgressTrend({ history, onClear }) {
     new Date(timestamp).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
   return (
-    <div className="border-t border-ink-200 pt-5">
+    <div className="border-t border-ink-200 dark:border-ink-800 pt-5">
       <div className="flex items-center justify-between gap-4">
         <h3 className="text-label uppercase text-ink-400">Your progress</h3>
         {onClear && history.length > 0 && (
           <button
             type="button"
             onClick={onClear}
-            className="text-meta text-ink-400 transition-colors hover:text-ink-700"
+            className={`rounded-ui px-1 text-meta text-ink-400 transition-colors duration-150 hover:text-ink-700 ${focusRing}`}
           >
             Clear history
           </button>
@@ -49,7 +50,7 @@ function ProgressTrend({ history, onClear }) {
         {change.label}
       </p>
 
-      <ol className="mt-3 divide-y divide-ink-200">
+      <ol className="mt-3 divide-y divide-ink-200 dark:divide-ink-800">
         {recent.map((entry, index) => {
           const band = getScoreBand(entry.overall_score);
           return (
@@ -57,7 +58,7 @@ function ProgressTrend({ history, onClear }) {
               key={entry.timestamp}
               className="flex items-baseline justify-between gap-4 py-2"
             >
-              <span className="text-meta text-ink-500">
+              <span className="text-meta text-ink-500 dark:text-ink-400">
                 {formatDate(entry.timestamp)}
                 {index === 0 && <span className="ml-2 text-ink-400">latest</span>}
               </span>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import Button from './Button';
 import SkillTags from './SkillTags';
 import FitScoreBadge from './FitScoreBadge';
 
@@ -34,25 +35,26 @@ function CandidateDetailModal({ candidate, onClose }) {
     >
       {/* ...and stopPropagation stops a click inside the panel bubbling up to it. */}
       <div
-        className="w-full max-w-2xl rounded-ui bg-white shadow-xl"
+        className="w-full max-w-2xl rounded-ui bg-white dark:bg-ink-950 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-ink-200 p-6">
+        <div className="flex items-start justify-between gap-4 border-b border-ink-200 dark:border-ink-800 p-6">
           <div>
-            <h2 className="text-heading text-ink-900">{candidate.name}</h2>
-            <p className="text-meta text-ink-500">{candidate.email}</p>
+            <h2 className="text-heading font-display text-ink-900 dark:text-ink-100">{candidate.name}</h2>
+            <p className="text-meta text-ink-500 dark:text-ink-400">{candidate.email}</p>
           </div>
 
           <div className="flex items-start gap-4">
             <FitScoreBadge score={candidate.fit_score} />
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onClose}
-              className="text-ink-400 transition-colors hover:text-ink-700"
               aria-label="Close"
+              className="px-2 text-ink-400"
             >
               <X className="h-5 w-5" aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -85,9 +87,9 @@ function CandidateDetailModal({ candidate, onClose }) {
             {questions.length > 0 ? (
               // A divided list, not a stack of cards. The rule between rows is
               // enough to separate them.
-              <ol className="mt-1 divide-y divide-ink-200">
+              <ol className="mt-1 divide-y divide-ink-200 dark:divide-ink-800">
                 {questions.map((question, index) => (
-                  <li key={index} className="flex gap-4 py-3 text-body text-ink-700">
+                  <li key={index} className="flex gap-4 py-3 text-body text-ink-700 dark:text-ink-300">
                     <span className="text-meta font-semibold tabular-nums text-ink-400">
                       {index + 1}
                     </span>
@@ -96,7 +98,7 @@ function CandidateDetailModal({ candidate, onClose }) {
                 ))}
               </ol>
             ) : (
-              <p className="mt-2 text-meta text-ink-500">
+              <p className="mt-2 text-meta text-ink-500 dark:text-ink-400">
                 {candidate.warning
                   ? candidate.warning
                   : 'No questions yet - run a match for this candidate.'}
@@ -105,14 +107,8 @@ function CandidateDetailModal({ candidate, onClose }) {
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-ink-200 p-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-ui bg-primary-600 px-4 py-2 text-meta font-semibold text-white transition-colors hover:bg-primary-700"
-          >
-            Close
-          </button>
+        <div className="flex justify-end border-t border-ink-200 dark:border-ink-800 p-4">
+          <Button onClick={onClose}>Close</Button>
         </div>
       </div>
     </div>
