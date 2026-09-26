@@ -1,3 +1,5 @@
+import useCountUp from './useCountUp';
+
 /**
  * The 0-100 fit score.
  *
@@ -28,8 +30,8 @@ export function getScoreBand(score) {
     return {
       value: clamped,
       caption: 'Strong match',
-      text: 'text-good-ink',
-      surface: 'bg-good-soft border-good-line',
+      text: 'text-good-ink dark:text-good-dark',
+      surface: 'bg-good-soft dark:bg-good-dark/10 border-good-line dark:border-good-dark/30',
       stroke: 'text-good',
     };
   }
@@ -38,8 +40,8 @@ export function getScoreBand(score) {
     return {
       value: clamped,
       caption: 'Partial match',
-      text: 'text-warning-ink',
-      surface: 'bg-warning-soft border-warning-line',
+      text: 'text-warning-ink dark:text-warning-dark',
+      surface: 'bg-warning-soft dark:bg-warning-dark/10 border-warning-line dark:border-warning-dark/30',
       stroke: 'text-warning',
     };
   }
@@ -47,14 +49,18 @@ export function getScoreBand(score) {
   return {
     value: clamped,
     caption: 'Weak match',
-    text: 'text-critical-ink',
-    surface: 'bg-critical-soft border-critical-line',
+    text: 'text-critical-ink dark:text-critical-dark',
+    surface: 'bg-critical-soft dark:bg-critical-dark/10 border-critical-line dark:border-critical-dark/30',
     stroke: 'text-critical',
   };
 }
 
 function FitScoreBadge({ score, variant = 'compact' }) {
   const band = getScoreBand(score);
+  // Only the headline counts up, and `shown` is used only there. In a table
+  // column ten numbers animating at once would be noise rather than emphasis,
+  // so the compact variant prints the final value directly.
+  const shown = useCountUp(band.value, 900);
 
   if (variant === 'headline') {
     return (
@@ -63,8 +69,8 @@ function FitScoreBadge({ score, variant = 'compact' }) {
         <div className="mt-1 flex items-baseline gap-2">
           {/* No tabular-nums: this figure stands alone, so proportional
               spacing reads better than column-aligned digits. */}
-          <span className={`text-display ${band.text}`}>{band.value.toFixed(1)}</span>
-          <span className="text-body text-ink-500">out of 100</span>
+          <span className={`text-display font-display ${band.text}`}>{shown.toFixed(1)}</span>
+          <span className="text-body text-ink-500 dark:text-ink-400">out of 100</span>
         </div>
         <p className={`text-meta font-medium ${band.text}`}>{band.caption}</p>
       </div>
@@ -76,7 +82,7 @@ function FitScoreBadge({ score, variant = 'compact' }) {
   // meaning, so the chrome is not earning its place.
   return (
     <div className="inline-flex flex-col">
-      <span className={`text-heading tabular-nums ${band.text}`}>{band.value.toFixed(1)}</span>
+      <span className={`text-heading font-display tabular-nums ${band.text}`}>{band.value.toFixed(1)}</span>
       <span className={`text-label uppercase ${band.text}`}>{band.caption}</span>
     </div>
   );

@@ -1,4 +1,5 @@
 import { getScoreBand } from './FitScoreBadge';
+import useCountUp from './useCountUp';
 
 /**
  * A 0-100 score drawn as a circular progress ring.
@@ -15,12 +16,17 @@ function ScoreRing({ score, size = 168, label = 'Resume score' }) {
   const value = typeof score === 'number' && Number.isFinite(score) ? score : 0;
   const clamped = Math.min(100, Math.max(0, value));
 
+  // The ring arc and the number are both driven by this, so the figure always
+  // matches however much of the circle is drawn. Declared before the geometry
+  // below, which reads it.
+  const shown = useCountUp(clamped, 900);
+
   // Geometry. The radius is inset by half the stroke width so the thick line
   // does not get clipped by the edge of the SVG viewport.
   const strokeWidth = 12;
   const radius = size / 2 - strokeWidth / 2;
   const circumference = 2 * Math.PI * radius;
-  const filled = (clamped / 100) * circumference;
+  const filled = (shown / 100) * circumference;
 
   const band = getScoreBand(clamped);
 
@@ -47,7 +53,7 @@ function ScoreRing({ score, size = 168, label = 'Resume score' }) {
             r={radius}
             fill="none"
             strokeWidth={strokeWidth}
-            className="text-ink-200"
+            className="text-ink-200 dark:text-ink-800"
             stroke="currentColor"
           />
 
@@ -61,7 +67,7 @@ function ScoreRing({ score, size = 168, label = 'Resume score' }) {
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeDasharray={`${filled} ${circumference - filled}`}
-            className={`${band.stroke} transition-[stroke-dasharray] duration-700 ease-out`}
+            className={band.stroke}
             stroke="currentColor"
           />
         </svg>
@@ -71,7 +77,7 @@ function ScoreRing({ score, size = 168, label = 'Resume score' }) {
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {/* Proportional figures: this number is the content of the card,
               not one of a column of numbers to be compared down the page. */}
-          <span className={`text-display ${band.text}`}>{Math.round(clamped)}</span>
+          <span className={`text-display font-display ${band.text}`}>{Math.round(shown)}</span>
           <span className="text-label uppercase text-ink-400">out of 100</span>
         </div>
       </div>
