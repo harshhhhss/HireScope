@@ -30,6 +30,13 @@ function MethodologyNote() {
           prediction of whether you will be interviewed or hired, and it cannot see
           anything the text does not say.
         </p>
+        <p className="mt-2">
+          The role fit scores above work the same way, with one difference worth
+          knowing: they compare your resume against descriptions we wrote of what each
+          role typically involves, not against real openings. A high score means your
+          resume reads like that kind of work, not that such a job is open or that you
+          would be shortlisted for it.
+        </p>
       </div>
     </div>
   );
