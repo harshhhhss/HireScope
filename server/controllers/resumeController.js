@@ -1,4 +1,5 @@
 const { getMatchScore } = require('../services/matchService');
+const { getRoleFit } = require('../services/roleFitService');
 const {
   generateInterviewQuestions,
   scoreResumeQuality,
@@ -225,4 +226,36 @@ async function coverLetter(req, res) {
   }
 }
 
-module.exports = { scoreResume, uploadResume, matchResume, interviewFeedback, coverLetter };
+/**
+ * POST /api/v1/resume/role-fit
+ *
+ * Body: { "resume_text": "…" }
+ *
+ * Scores one resume against every canonical role profile. Saves nothing, and
+ * costs no Gemini quota - this is embedding maths only.
+ */
+async function roleFit(req, res) {
+  const { resume_text } = req.body;
+
+  const invalid = validateText(resume_text, 'resume_text');
+  if (invalid) {
+    return res.status(400).json({ success: false, error: invalid });
+  }
+
+  try {
+    const { roles, profileCount } = await getRoleFit(resume_text.trim());
+    return res.status(200).json({ success: true, roles, profile_count: profileCount });
+  } catch (error) {
+    console.error(`POST /api/v1/resume/role-fit failed: ${error.message}`);
+    return res.status(502).json({ success: false, error: error.message });
+  }
+}
+
+module.exports = {
+  scoreResume,
+  uploadResume,
+  matchResume,
+  interviewFeedback,
+  coverLetter,
+  roleFit,
+};

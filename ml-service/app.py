@@ -15,6 +15,7 @@ import re
 from flask import Flask, jsonify, request
 from sentence_transformers import SentenceTransformer, util
 
+from role_profiles import ROLE_PROFILES
 from skills import SKILL_TAXONOMY
 
 # The name of the pretrained model we download from Hugging Face. all-MiniLM-L6-v2
@@ -29,6 +30,23 @@ model = SentenceTransformer(MODEL_NAME)
 print("Model loaded. ML service ready.")
 
 app = Flask(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Role profile embeddings
+#
+# The profile texts never change between requests, so they are embedded once at
+# startup and kept in memory. Scoring a resume against all fifteen is then one
+# encode() for the resume plus a single matrix multiply - not fifteen model
+# calls. Adding a role to role_profiles.py costs one more row in this matrix and
+# nothing else.
+# ---------------------------------------------------------------------------
+print(f"Embedding {len(ROLE_PROFILES)} role profiles...")
+ROLE_PROFILE_EMBEDDINGS = model.encode(
+    [profile["description"] for profile in ROLE_PROFILES],
+    convert_to_tensor=True,
+)
+print("Role profiles embedded and cached.")
 
 
 # Sentence-pair matching is O(n*m) comparisons, so both sides are capped. A
@@ -196,6 +214,45 @@ def match():
         "matched_skills": sorted(matched_skills),
         "missing_skills": sorted(missing_skills),
     })
+
+
+@app.route("/role-fit", methods=["POST"])
+def role_fit():
+    """POST /role-fit  ->  { roles: [{ id, title, branch, fit_score, similarity }] }
+
+    Scores one resume against every cached role profile. The resume is embedded
+    once; the comparison against all profiles is then vector arithmetic against
+    the matrix built at startup, which is why adding roles stays cheap.
+    """
+    body = request.get_json(silent=True) or {}
+    resume_text = body.get("resume_text")
+
+    if not isinstance(resume_text, str) or not resume_text.strip():
+        return jsonify({"error": "'resume_text' is required and must be a non-empty string"}), 400
+
+    resume_embedding = model.encode(resume_text, convert_to_tensor=True)
+
+    # One row of similarities: this resume against every profile.
+    scores = util.cos_sim(resume_embedding, ROLE_PROFILE_EMBEDDINGS)[0]
+
+    roles = []
+    for index, profile in enumerate(ROLE_PROFILES):
+        similarity = float(scores[index])
+        # Same clamp and scaling as the single-JD fit score, so the two numbers
+        # mean the same thing and can sit beside each other.
+        clamped = max(0.0, min(1.0, similarity))
+
+        roles.append({
+            "id": profile["id"],
+            "title": profile["title"],
+            "branch": profile["branch"],
+            "fit_score": round(clamped * 100, 2),
+            "similarity": round(similarity, 4),
+        })
+
+    roles.sort(key=lambda role: role["fit_score"], reverse=True)
+
+    return jsonify({"roles": roles, "profile_count": len(ROLE_PROFILES)})
 
 
 if __name__ == "__main__":

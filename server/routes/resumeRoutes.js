@@ -7,6 +7,7 @@ const {
   matchResume,
   interviewFeedback,
   coverLetter,
+  roleFit,
 } = require('../controllers/resumeController');
 const { MAX_FILE_BYTES } = require('../services/resumeTextService');
 const { aiLimiter, uploadLimiter } = require('../middleware/rateLimiters');
@@ -68,5 +69,8 @@ router.post('/interview-feedback', aiLimiter, interviewFeedback);
 
 // POST /api/v1/resume/cover-letter - draft a letter from the resume + posting
 router.post('/cover-letter', aiLimiter, coverLetter);
+
+// POST /api/v1/resume/role-fit - rank one resume against every role profile
+router.post('/role-fit', aiLimiter, roleFit);
 
 module.exports = router;
