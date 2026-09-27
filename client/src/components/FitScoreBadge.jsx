@@ -31,6 +31,9 @@ export function getScoreBand(score) {
       value: clamped,
       caption: 'Strong match',
       text: 'text-good-ink dark:text-good-dark',
+      // Literal, not derived from `stroke` at runtime: Tailwind only generates
+      // classes it can see written out in the source.
+      bar: 'bg-good',
       surface: 'bg-good-soft dark:bg-good-dark/10 border-good-line dark:border-good-dark/30',
       stroke: 'text-good',
     };
@@ -41,6 +44,7 @@ export function getScoreBand(score) {
       value: clamped,
       caption: 'Partial match',
       text: 'text-warning-ink dark:text-warning-dark',
+      bar: 'bg-warning',
       surface: 'bg-warning-soft dark:bg-warning-dark/10 border-warning-line dark:border-warning-dark/30',
       stroke: 'text-warning',
     };
@@ -50,6 +54,7 @@ export function getScoreBand(score) {
     value: clamped,
     caption: 'Weak match',
     text: 'text-critical-ink dark:text-critical-dark',
+    bar: 'bg-critical',
     surface: 'bg-critical-soft dark:bg-critical-dark/10 border-critical-line dark:border-critical-dark/30',
     stroke: 'text-critical',
   };

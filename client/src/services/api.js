@@ -313,4 +313,23 @@ export async function getJobFromUrl(url) {
   }
 }
 
+/**
+ * POST /api/v1/resume/role-fit - rank a resume against every role profile.
+ *
+ * Embedding maths only: no Gemini call, so this is fast and costs no quota.
+ *
+ * @returns {Promise<{roles: object[], profileCount: number}>}
+ */
+export async function getRoleFit(resumeText) {
+  try {
+    const response = await api.post('/resume/role-fit', { resume_text: resumeText });
+    return {
+      roles: response.data.roles ?? [],
+      profileCount: response.data.profile_count ?? 0,
+    };
+  } catch (error) {
+    throw toReadableError(error);
+  }
+}
+
 export default api;

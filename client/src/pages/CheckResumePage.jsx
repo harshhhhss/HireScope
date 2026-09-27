@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { matchMyResume, scoreResume } from '../services/api';
+import { getRoleFit, matchMyResume, scoreResume } from '../services/api';
 import ResumeInput from '../components/ResumeInput';
 import ScoreRing from '../components/ScoreRing';
 import SkillTags from '../components/SkillTags';
@@ -15,6 +15,7 @@ import ScoreBreakdown from '../components/ScoreBreakdown';
 import MethodologyNote from '../components/MethodologyNote';
 import Button from '../components/Button';
 import { textareaClass } from '../components/formStyles';
+import RoleFitSection from '../components/RoleFitSection';
 import { appendScore, clearHistory, readHistory } from '../services/resumeHistory';
 
 /**
@@ -43,6 +44,12 @@ function CheckResumePage() {
     setHistory(readHistory());
   }, []);
 
+  // Which roles this resume sits closest to. Runs off the same resume text as
+  // the quality score, so it is kicked off by the same action.
+  const [roleFit, setRoleFit] = useState(null);
+  const [isRoleFitLoading, setIsRoleFitLoading] = useState(false);
+  const [roleFitError, setRoleFitError] = useState('');
+
   // Step 2: the optional match against a specific job.
   const [jobDescription, setJobDescription] = useState('');
   const [fit, setFit] = useState(null);
@@ -61,6 +68,11 @@ function CheckResumePage() {
     setFit(null);
     setMatchError('');
 
+    // Role fit is embedding maths with no Gemini cost, so it runs alongside the
+    // score rather than behind another click. Its own state means a failure
+    // here never takes the quality score down with it.
+    runRoleFit(resumeText.trim());
+
     try {
       const result = await scoreResume(resumeText.trim());
       setQuality(result);
@@ -72,6 +84,20 @@ function CheckResumePage() {
       setQuality(null);
     } finally {
       setIsScoring(false);
+    }
+  }
+
+  async function runRoleFit(text) {
+    setIsRoleFitLoading(true);
+    setRoleFitError('');
+
+    try {
+      setRoleFit(await getRoleFit(text));
+    } catch (error) {
+      setRoleFitError(error.message);
+      setRoleFit(null);
+    } finally {
+      setIsRoleFitLoading(false);
     }
   }
 
@@ -184,6 +210,17 @@ function CheckResumePage() {
             </div>
           )}
         </section>
+      )}
+
+      {/* ---- Which roles fit, before narrowing to one posting ---- */}
+      {(isRoleFitLoading || roleFitError || roleFit) && (
+        <RoleFitSection
+          roles={roleFit?.roles}
+          profileCount={roleFit?.profileCount}
+          isLoading={isRoleFitLoading}
+          error={roleFitError}
+          onRetry={() => runRoleFit(resumeText.trim())}
+        />
       )}
 
       {/* ---- Step 2: optional, and only once there is a score ---- */}
