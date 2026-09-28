@@ -274,18 +274,18 @@ ROLE_PROFILES = [
         "title": "IT Services / Consulting Generalist",
         "branch": "Non-core",
         "description": (
-            "Deliver technology projects for client organisations across industries. "
-            "Gather requirements, configure and customise enterprise platforms, and "
-            "support applications through testing, deployment and handover. Work "
-            "across a broad and shifting stack: SQL databases, Java or Python, web "
-            "technologies, cloud basics on AWS or Azure, and packaged software such "
-            "as SAP, Salesforce or ServiceNow. Write documentation, prepare client "
-            "presentations, and coordinate between offshore and onsite teams. Operate "
-            "in Agile delivery with JIRA, participate in stand-ups and sprint "
-            "planning, and manage stakeholder expectations. Value adaptability and "
-            "fast learning over depth in any single technology, because the platform "
-            "changes with the client. Strong communication, ownership and "
-            "professional client-facing conduct."
+            "Implement and support enterprise applications for client organisations "
+            "under fixed-scope SOW and SLA commitments. Configure packaged platforms "
+            "- SAP ABAP with FICO or MM modules, Salesforce Apex, Lightning "
+            "components and flows, ServiceNow ITSM workflows - and integrate them "
+            "over REST and SOAP APIs, middleware and batch ETL jobs. Maintain a "
+            "requirement traceability matrix, run SIT and regression suites in "
+            "Selenium, and execute cutover and data-migration runbooks. Handle L2 "
+            "and L3 production support: triage incident tickets against ITIL "
+            "incident, problem and change management, root-cause defects, and meet "
+            "response SLAs. Write SQL joins and stored procedures for extracts and "
+            "reconciliation. Release through Jenkins pipelines onto AWS or Azure. "
+            "Coordinate onsite-offshore handover across time zones."
         ),
     },
     {
@@ -293,17 +293,93 @@ ROLE_PROFILES = [
         "title": "Business Analyst",
         "branch": "Non-core",
         "description": (
-            "Sit between business stakeholders and technical teams, translating "
-            "problems into specifications. Elicit and document requirements, write "
-            "user stories and acceptance criteria, and map current and future state "
-            "processes with BPMN or flowcharts. Analyse data in SQL and Excel, build "
-            "dashboards in Power BI or Tableau, and quantify the impact of proposed "
-            "changes. Run workshops, manage stakeholders across functions, and "
-            "prioritise a backlog against business value. Support UAT, define test "
-            "cases, and manage change through to adoption. Work in Agile teams with "
-            "JIRA and Confluence, alongside product owners and developers. Strong "
-            "written and verbal communication, structured problem solving, and "
-            "comfort asking the questions that expose what a request actually needs."
+            "Specify what a software change must do, in documents a developer can "
+            "build from. Run stakeholder elicitation workshops, then author BRD and "
+            "FRD specifications and a requirement traceability matrix, and write "
+            "epics and user stories with Gherkin acceptance criteria in JIRA, "
+            "keeping the specification set versioned in Confluence. Map AS-IS and "
+            "TO-BE workflows in BPMN or Visio, run gap analysis, and rank scope by "
+            "MoSCoW prioritisation against RACI ownership. Write SQL joins, "
+            "aggregates and window functions for reporting extracts, and publish "
+            "Power BI and Tableau dashboards on top of them. Own UAT: build test "
+            "scripts, coordinate business testers, triage defects and sign off. "
+            "Work Scrum ceremonies - backlog grooming, sprint planning, "
+            "retrospectives - beside the product owner."
         ),
     },
+]
+
+
+# ---------------------------------------------------------------------------
+# Calibration resumes
+#
+# These exist to answer one question: what does this profile score against an
+# ordinary resume, chosen without regard to the profile?
+#
+# That number is not zero, and it is not the same for every profile. A tightly
+# written profile like Telecom / Signal Processing scores ~0.07 against an
+# unrelated resume; a broad one that name-drops SQL, cloud, Agile and several
+# languages scores ~0.27 against the same resume, because it sits near
+# everything in embedding space. Comparing raw cosine values across profiles
+# therefore compares two different things, and the broad profile wins ties it
+# has not earned.
+#
+# So each profile's own median across this set is measured once at startup and
+# subtracted before scoring - see the note beside PROFILE_BASELINES in app.py
+# for why the median and not the mean.
+#
+# The set holds one resume per discipline on purpose. If it leaned towards CSE,
+# every CSE profile would inherit an inflated baseline and get unfairly
+# penalised. Six is enough to separate "broad" from "narrow" - a generic
+# profile scores about the same against all of them, a specific one peaks on
+# exactly one - and small enough to embed in well under a second.
+#
+# These are written samples, not real resumes - nobody's data is in here.
+# ---------------------------------------------------------------------------
+
+BASELINE_RESUMES = [
+    # CSE - backend
+    "Backend engineer. Built REST APIs in Python with Flask and FastAPI serving "
+    "40k requests a day. MongoDB for document storage, Redis for caching hot "
+    "queries. Containerised services with Docker and deployed on AWS EC2. "
+    "Node.js and Express microservices, PostgreSQL schema design and query "
+    "optimisation. Unit tests and Git-based code review. Skills: Python, "
+    "JavaScript, Node.js, MongoDB, PostgreSQL, Docker, AWS, Git.",
+
+    # CSE - data / ML
+    "Data science intern. Cleaned and analysed datasets with pandas and numpy, "
+    "built regression and classification models in scikit-learn, and tuned a "
+    "PyTorch neural network for text classification. Wrote SQL queries against "
+    "a warehouse and built Tableau dashboards for weekly reporting. Evaluated "
+    "models with precision, recall and AUC. Skills: Python, SQL, pandas, "
+    "scikit-learn, PyTorch, Tableau, statistics.",
+
+    # ECE - embedded
+    "Embedded systems engineer. Wrote firmware in Embedded C for STM32 and "
+    "ARM Cortex-M microcontrollers. Configured UART, SPI and I2C peripherals, "
+    "debugged with an oscilloscope and JTAG, and worked with FreeRTOS tasks "
+    "and interrupts. Designed schematics in Altium and brought up custom PCBs. "
+    "Skills: C, C++, STM32, RTOS, SPI, I2C, CAN, PCB design.",
+
+    # EEE - power
+    "Electrical engineer. Worked on 11kV distribution substation design, load "
+    "flow and short-circuit studies in ETAP, and protection relay coordination. "
+    "Prepared single-line diagrams in AutoCAD, sized transformers and cables to "
+    "IS and IEC standards, and supported site testing and commissioning. "
+    "Skills: ETAP, AutoCAD, switchgear, protection, power systems.",
+
+    # Mechanical
+    "Mechanical design engineer. Modelled parts and assemblies in SolidWorks "
+    "and CATIA, produced GD&T drawings, and ran structural FEA in ANSYS to "
+    "validate designs. Selected materials, applied DFM and tolerance stack-up "
+    "analysis, and coordinated with vendors on sheet metal and machined "
+    "components. Skills: SolidWorks, CATIA, ANSYS, GD&T, FEA, DFM.",
+
+    # Non-core / general graduate
+    "B.Tech graduate seeking a role in technology. Coursework in programming, "
+    "databases and operating systems. Built a college event management website "
+    "and a small inventory tracker as academic projects. Certifications in "
+    "Python and cloud fundamentals. Organised a technical fest and led a team "
+    "of six volunteers. Strong communication, teamwork and willingness to "
+    "learn new tools quickly.",
 ]
