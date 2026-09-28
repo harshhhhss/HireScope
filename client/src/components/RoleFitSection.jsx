@@ -12,9 +12,12 @@ import Button from './Button';
  * paste-a-JD step because it answers the earlier question: someone who does not
  * yet know what to apply for has nothing to paste.
  *
- * Scores reuse getScoreBand, so a 72 here is coloured exactly as a 72 from a
- * real posting. That consistency matters more than it looks: two differently
- * coloured 72s would imply the numbers mean different things.
+ * Scores reuse getScoreBand so the colours stay consistent with the rest of the
+ * app. Worth knowing that these numbers are not the same quantity as the single
+ * JD score: that one is raw similarity, this one is similarity measured against
+ * each profile's own baseline, because broad profiles otherwise beat specific
+ * ones by default. The bands are therefore a shared visual scale rather than a
+ * claim that a 72 here and a 72 there mean the same thing.
  *
  * The framing is deliberately flat - "role fit score", never a recommendation.
  * These are comparisons against text we wrote, not against live openings, and
@@ -122,7 +125,7 @@ function RoleFitSection({ roles, profileCount, isLoading, error, onRetry }) {
           </h3>
           <p className="mt-1 text-meta text-ink-500 dark:text-ink-400">
             Your resume compared against {profileCount} representative role descriptions,
-            using the same similarity measure as the job match below.
+            scored against what each one reads like for an average resume.
           </p>
         </div>
       </div>
@@ -175,9 +178,10 @@ function RoleFitSection({ roles, profileCount, isLoading, error, onRetry }) {
       {/* The same honesty as the single-JD note, applied to this wider set. */}
       <p className="mt-6 border-t border-ink-200 pt-4 text-meta text-ink-500 dark:border-ink-800 dark:text-ink-400">
         These are pre-written descriptions of what each role typically involves, not
-        live job openings. A score is how closely your resume reads like that
-        description, so it reflects the words on the page, not whether you would be
-        hired or whether anyone is currently recruiting for it.
+        live job openings. A score is how far your resume reads like that description
+        beyond what any resume scores against it, so a role you match no better than
+        average shows zero. It reflects the words on the page, not whether you would
+        be hired or whether anyone is currently recruiting for it.
       </p>
     </section>
   );

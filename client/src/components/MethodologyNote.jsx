@@ -31,11 +31,19 @@ function MethodologyNote() {
           anything the text does not say.
         </p>
         <p className="mt-2">
-          The role fit scores above work the same way, with one difference worth
-          knowing: they compare your resume against descriptions we wrote of what each
-          role typically involves, not against real openings. A high score means your
-          resume reads like that kind of work, not that such a job is open or that you
-          would be shortlisted for it.
+          The role fit scores above compare your resume against descriptions we
+          wrote of what each role typically involves, not against real openings. A
+          high score means your resume reads like that kind of work, not that such a
+          job is open or that you would be shortlisted for it.
+        </p>
+        <p className="mt-2">
+          Those scores are adjusted before you see them, for a reason worth knowing.
+          Broadly written role descriptions sit close to almost any resume, so on the
+          raw measure they beat specific ones by default. Each role is therefore first
+          scored against a fixed set of sample resumes from every branch, and what you
+          see is how far above that baseline your resume got. A role you match no
+          better than an arbitrary resume does shows zero, which is why some roles read
+          0.0 rather than a small number.
         </p>
       </div>
     </div>
